@@ -829,8 +829,9 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--ink);}
 // ── HARDCODED DEFAULTS ────────────────────────────────────────
 var SHEET_ID = localStorage.getItem('sheetId') || '1kbW4EcYvt6gu-st1tWY4G9QpCa3KvGPq2EtCWxeur1M';
 var PHOTOS_CLIENT_ID = '801480570402-brbo6se67g4g8kbckijlbbmffkb13u2s.apps.googleusercontent.com';
+var DRIVE_FOLDER_ID = '1VrGefC8FXO5-E7P8ree44DgQz2RGslom';
 var photosAccessToken = localStorage.getItem('photosToken') || '';
-var selectedAlbumId = localStorage.getItem('photosAlbumId') || '';
+var driveMediaUrls = [];
 var WEB_APP_URL = localStorage.getItem('webAppUrl') || 'https://script.google.com/macros/s/AKfycbxnRDiwIZsuM0luD_L5syB1YxP7UVrK2rR7t81reuMD0Z8pLui6FeO6Ne4haY76YDXt/exec';
 var USER_PIN = localStorage.getItem('userPin') || '1234';
 var SPARK_THRESHOLD = parseInt(localStorage.getItem('sparkThreshold') || '10');
@@ -925,8 +926,36 @@ function saveSsTimer(){
 }
 ['mousemove','touchstart','keydown','click'].forEach(function(e){ document.addEventListener(e,resetIdle); });
 resetIdle();
-function activateSS(){ document.getElementById('screensaver').classList.add('active'); if(photos.length){showNextPhoto();ssInterval=setInterval(showNextPhoto,7000);} }
-function showNextPhoto(){ if(!photos.length)return; var img=document.getElementById('ss-photo'); img.classList.remove('visible'); setTimeout(function(){ img.src=photos[ssIdx%photos.length];ssIdx++;img.classList.add('visible'); },600); }
+function activateSS(){
+  document.getElementById('screensaver').classList.add('active');
+  if(photosAccessToken){ loadDriveMediaForScreensaver().then(function(){ if(photos.length){showNextPhoto();ssInterval=setInterval(showNextPhoto,7000);} }); }
+  else if(photos.length){ showNextPhoto(); ssInterval=setInterval(showNextPhoto,7000); }
+}
+function showNextPhoto(){
+  if(!photos.length) return;
+  var idx2 = ssIdx % photos.length;
+  var src = photos[idx2];
+  var mediaItem = driveMediaUrls[idx2];
+  ssIdx++;
+  var isVideo = mediaItem && mediaItem.type === 'video';
+  if(isVideo){
+    var img = document.getElementById('ss-photo'); img.classList.remove('visible');
+    var vid = document.getElementById('ss-video');
+    if(!vid){
+      vid = document.createElement('video'); vid.id='ss-video';
+      vid.style.cssText='width:100%;height:100%;object-fit:cover;position:absolute;inset:0;opacity:0;transition:opacity 1.2s ease;';
+      vid.muted=true; vid.autoplay=true;
+      document.getElementById('screensaver').insertBefore(vid, document.getElementById('ss-overlay'));
+    }
+    vid.style.opacity='0'; vid.src=src; vid.play().catch(function(){});
+    setTimeout(function(){ vid.style.opacity='1'; },100);
+    clearInterval(ssInterval); ssInterval=setTimeout(function(){ vid.style.opacity='0'; showNextPhoto(); setInterval(showNextPhoto,7000); },30000);
+  } else {
+    var vid2=document.getElementById('ss-video'); if(vid2) vid2.style.opacity='0';
+    var img2=document.getElementById('ss-photo'); img2.classList.remove('visible');
+    setTimeout(function(){ img2.src=src; img2.classList.add('visible'); },600);
+  }
+}
 function wakeUp(e){ if(e.target.id==='ss-upload-btn'||e.target.id==='ss-file-input')return; document.getElementById('screensaver').classList.remove('active'); clearInterval(ssInterval); resetIdle(); }
 function addPhotos(input){ Array.from(input.files).forEach(function(f){ var r=new FileReader(); r.onload=function(e){photos.push(e.target.result);try{localStorage.setItem('ss-photos',JSON.stringify(photos));}catch(x){}updatePhotoCount();}; r.readAsDataURL(f); }); }
 function clearPhotos(){ photos=[]; localStorage.removeItem('ss-photos'); updatePhotoCount(); }
@@ -1171,8 +1200,24 @@ var GROCERY_MASTER=[
   {name:'Fish sticks',store:'tj',qty:0},{name:'Mac & cheese',store:'tj',qty:0},{name:'Dish soap',store:'co',qty:0},{name:'Paper towels',store:'co',qty:0},
 ];
 var groceryItems=[];
-try{groceryItems=JSON.parse(localStorage.getItem('groceryItems')||'null');}catch(e){}
-if(!groceryItems||groceryItems.length===0){groceryItems=GROCERY_MASTER.map(function(i){return{name:i.name,store:i.store,qty:0,checked:false};});localStorage.setItem('groceryItems',JSON.stringify(groceryItems));}
+function loadGroceryFromMobileOrMaster(){
+  // Try to load most recent saved list from mobile app
+  var saved = null;
+  try{ saved = JSON.parse(localStorage.getItem('savedGroceryLists')||'null'); }catch(e){}
+  if(saved && saved.length){
+    // Use most recent list
+    var latest = saved[saved.length-1];
+    groceryItems = latest.items || [];
+    return;
+  }
+  // Fall back to master list
+  try{ groceryItems = JSON.parse(localStorage.getItem('groceryItems')||'null'); }catch(e){}
+  if(!groceryItems||!groceryItems.length){
+    groceryItems = GROCERY_MASTER.map(function(i){return{name:i.name,store:i.store,qty:0,checked:false};});
+    localStorage.setItem('groceryItems',JSON.stringify(groceryItems));
+  }
+}
+loadGroceryFromMobileOrMaster();
 var gFilter='all',gNewStore='tj';
 
 function openGrocery(){document.getElementById('groceryModal').classList.add('open');renderGrocery();setGroceryStore('tj',document.getElementById('gpick-tj'));}
@@ -1528,7 +1573,7 @@ async function loadWeather(){
 function connectGooglePhotos(){
   var client = google.accounts.oauth2.initTokenClient({
     client_id: PHOTOS_CLIENT_ID,
-    scope: 'https://www.googleapis.com/auth/photoslibrary.readonly https://www.googleapis.com/auth/photoslibrary.sharing',
+    scope: 'https://www.googleapis.com/auth/photoslibrary.readonly https://www.googleapis.com/auth/drive.readonly',
     callback: function(response){
       if(response.error){ document.getElementById('gPhotosStatus').textContent='❌ '+response.error; return; }
       photosAccessToken = response.access_token;
@@ -1546,13 +1591,15 @@ function loadPhotosFromAlbum(){
   document.getElementById('gPhotosStatus').textContent='⏳ Loading photos from library…';
   // Load directly from Google Photos library (no album filter)
   fetch('https://photoslibrary.googleapis.com/v1/mediaItems?pageSize=100', {
-    headers:{ Authorization:'Bearer '+photosAccessToken }
+    method:'GET',
+    headers:{ Authorization:'Bearer '+photosAccessToken, 'Content-Type':'application/json' }
   })
   .then(function(r){ return r.json(); })
   .then(function(data){
     var items = data.mediaItems || [];
     if(!items.length){
-      document.getElementById('gPhotosStatus').textContent='⚠️ No photos found in library.';
+      document.getElementById('gPhotosStatus').textContent='⚠️ No photos found. Make sure photos are saved to emmabellauribe@gmail.com library.';
+      console.log('API response:', JSON.stringify(data));
       return;
     }
     photos = items
@@ -1569,10 +1616,42 @@ function loadPhotosFromAlbum(){
 
 function loadPictureFramesAlbum(){ loadPhotosFromAlbum(); }
 
-// Auto-reload photos on open if token exists
+// Load media from Google Drive folder for screensaver
 function tryAutoLoadPhotos(){
-  if(photosAccessToken && selectedAlbumId){
-    loadPhotosFromAlbum(selectedAlbumId);
+  if(photosAccessToken){
+    loadDriveMediaForScreensaver();
+  }
+}
+
+async function loadDriveMediaForScreensaver(){
+  if(!photosAccessToken) return;
+  try{
+    var res = await fetch(
+      "https://www.googleapis.com/drive/v3/files?q='"+DRIVE_FOLDER_ID+"'+in+parents+and+trashed=false&fields=files(id,name,mimeType,webContentLink)&pageSize=100",
+      { headers:{ Authorization:'Bearer '+photosAccessToken } }
+    );
+    var data = await res.json();
+    if(data.error) throw new Error(data.error.message);
+    var files = data.files || [];
+    // Build direct URLs for images
+    driveMediaUrls = files.map(function(f){
+      return {
+        url: 'https://drive.google.com/uc?export=view&id='+f.id,
+        type: f.mimeType && f.mimeType.startsWith('video/') ? 'video' : 'image',
+        id: f.id
+      };
+    });
+    // Also merge with any manually uploaded photos
+    var localPhotos = [];
+    try{ localPhotos = JSON.parse(localStorage.getItem('ss-photos')||'[]'); }catch(e){}
+    localPhotos.forEach(function(p){ driveMediaUrls.push({url:p, type:'image'}); });
+    photos = driveMediaUrls.map(function(m){ return m.url; });
+    updatePhotoCount();
+    console.log('Loaded '+driveMediaUrls.length+' media items from Drive');
+  }catch(e){
+    // Fall back to localStorage photos
+    try{ photos = JSON.parse(localStorage.getItem('ss-photos')||'[]'); }catch(ex){}
+    updatePhotoCount();
   }
 }
 
