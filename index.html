@@ -613,7 +613,18 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--ink);}
             <button class="btn btn-primary btn-sm" onclick="openCalModal()">+ Event</button>
           </div>
         </div>
-        <ul id="calEventsList" style="list-style:none;flex:1;overflow-y:auto"><li class="empty-hint">Syncing events…</li></ul>
+        <!-- Week header -->
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:4px;flex-shrink:0">
+          <div id="wh0" style="font-size:0.55rem;font-weight:900;text-align:center;padding:3px 1px;border-radius:5px;color:var(--muted);text-transform:uppercase">Sun</div>
+          <div id="wh1" style="font-size:0.55rem;font-weight:900;text-align:center;padding:3px 1px;border-radius:5px;color:var(--muted);text-transform:uppercase">Mon</div>
+          <div id="wh2" style="font-size:0.55rem;font-weight:900;text-align:center;padding:3px 1px;border-radius:5px;color:var(--muted);text-transform:uppercase">Tue</div>
+          <div id="wh3" style="font-size:0.55rem;font-weight:900;text-align:center;padding:3px 1px;border-radius:5px;color:var(--muted);text-transform:uppercase">Wed</div>
+          <div id="wh4" style="font-size:0.55rem;font-weight:900;text-align:center;padding:3px 1px;border-radius:5px;color:var(--muted);text-transform:uppercase">Thu</div>
+          <div id="wh5" style="font-size:0.55rem;font-weight:900;text-align:center;padding:3px 1px;border-radius:5px;color:var(--muted);text-transform:uppercase">Fri</div>
+          <div id="wh6" style="font-size:0.55rem;font-weight:900;text-align:center;padding:3px 1px;border-radius:5px;color:var(--muted);text-transform:uppercase">Sat</div>
+        </div>
+        <!-- Week day columns -->
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;flex:1;min-height:0;overflow:hidden" id="weekColGrid"></div>
       </div>
 
       <!-- Tally Summary -->
@@ -931,33 +942,8 @@ async function syncFromSheet(){
     data['Reminders'].forEach(function(row){ if(!row.title||row.title==='title')return; var li=appendMini(sL,row.title,'School','var(--teal)'); li.setAttribute('data-auto','1'); });
     if(sL.children.length===0) sL.innerHTML='<li class="empty-hint">No school reminders</li>';
 
-    // Calendar events
-    var calList=document.getElementById('calEventsList');
-    if(calList && data['Calendar']){
-      calList.innerHTML='';
-      var calCount=0;
-      var today=new Date().toISOString().substring(0,10);
-      data['Calendar'].forEach(function(row){
-        if(!row.title||row.title==='title') return;
-        var who=(row.who||'').toLowerCase();
-        var color=who.indexOf('alvaro')!==-1?'var(--blue)':who.indexOf('zarifa')!==-1?'var(--pink)':who.indexOf('emma')!==-1?'var(--amber)':who.indexOf('school')!==-1||who.indexOf('hill')!==-1?'var(--teal)':'var(--purple)';
-        var light=who.indexOf('alvaro')!==-1?'var(--blue-l)':who.indexOf('zarifa')!==-1?'var(--pink-l)':who.indexOf('emma')!==-1?'var(--amber-l)':who.indexOf('school')!==-1||who.indexOf('hill')!==-1?'var(--teal-l)':'var(--purple-l)';
-        var dateStr=row.date||'';
-        var isToday=dateStr===today;
-        var isTomorrow=dateStr===(function(){var d=new Date();d.setDate(d.getDate()+1);return d.toISOString().substring(0,10);})();
-        var dateLabel=isToday?'Today':isTomorrow?'Tomorrow':(function(){if(!dateStr)return '';var d=new Date(dateStr+'T12:00:00');return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()]+' '+d.getDate();})();
-        var timeStr=row.time?row.time:'All day';
-        var li=document.createElement('li');
-        li.style.cssText='display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);';
-        li.innerHTML='<div style="width:4px;min-height:32px;border-radius:3px;background:'+color+';flex-shrink:0;align-self:stretch"></div>'
-          +'<div style="flex:1;min-width:0"><div style="font-size:0.82rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+row.title+'</div>'
-          +'<div style="font-size:0.65rem;color:var(--muted);margin-top:1px">'+dateLabel+(timeStr!=='All day'?' · '+timeStr:'')+'</div></div>'
-          +'<span style="font-size:0.6rem;font-weight:800;padding:2px 6px;border-radius:20px;background:'+light+';color:'+color+';flex-shrink:0;white-space:nowrap">'+row.who+'</span>';
-        calList.appendChild(li);
-        calCount++;
-      });
-      if(calCount===0) calList.innerHTML='<li class="empty-hint">No upcoming events</li>';
-    }
+    // Calendar week grid
+    if(data['Calendar']) renderWeekGrid(data['Calendar']);
 
     document.getElementById('syncPill').textContent='⟳ Sync';
     updateSheetStatus();
@@ -1011,6 +997,66 @@ function appendHwItem(title,sub,dueClass,dueLabel,done){
 function addSchoolNote(){ var i=document.getElementById('schoolNoteInput'),v=i.value.trim();if(!v)return;appendMini(document.getElementById('schoolNotesList'),v,'Manual','var(--teal)');i.value=''; }
 
 // ── CALENDAR ──────────────────────────────────────────────────────────────────
+function getEventColor(who){
+  var w=(who||'').toLowerCase();
+  if(w.indexOf('alvaro')!==-1) return {c:'var(--blue)',l:'var(--blue-l)'};
+  if(w.indexOf('zarifa')!==-1) return {c:'var(--pink)',l:'var(--pink-l)'};
+  if(w.indexOf('emma')!==-1) return {c:'var(--amber)',l:'var(--amber-l)'};
+  if(w.indexOf('school')!==-1||w.indexOf('hill')!==-1||w.indexOf('joseph')!==-1) return {c:'var(--teal)',l:'var(--teal-l)'};
+  return {c:'var(--purple)',l:'var(--purple-l)'};
+}
+
+function renderWeekGrid(calData){
+  var grid=document.getElementById('weekColGrid'); if(!grid) return;
+  grid.innerHTML='';
+  var now=new Date(), todayIdx=now.getDay();
+
+  // Build 7 day columns for this week Sun-Sat
+  for(var i=0;i<7;i++){
+    var colDate=new Date(now);
+    colDate.setDate(now.getDate()-todayIdx+i);
+    var dateStr=colDate.toISOString().substring(0,10);
+    var isToday=(i===todayIdx);
+
+    // Update header
+    var hdr=document.getElementById('wh'+i);
+    if(hdr){
+      hdr.style.background=isToday?'var(--blue)':'transparent';
+      hdr.style.color=isToday?'white':'var(--muted)';
+      hdr.style.borderRadius=isToday?'5px':'';
+    }
+
+    var col=document.createElement('div');
+    col.style.cssText='display:flex;flex-direction:column;gap:2px;overflow:hidden;min-height:0;border-radius:8px;padding:2px;background:'+(isToday?'var(--blue-l)':'transparent');
+
+    // Day number
+    var num=document.createElement('div');
+    num.style.cssText='font-size:0.65rem;font-weight:900;text-align:center;color:'+(isToday?'var(--blue)':'var(--muted)')+';flex-shrink:0;';
+    num.textContent=colDate.getDate();
+    col.appendChild(num);
+
+    // Events for this day
+    var dayEvents=calData.filter(function(row){ return row.date===dateStr && row.title && row.title!=='title'; });
+    dayEvents.slice(0,4).forEach(function(row){
+      var clr=getEventColor(row.who);
+      var ev=document.createElement('div');
+      ev.style.cssText='border-radius:4px;padding:2px 4px;font-size:0.52rem;font-weight:700;line-height:1.3;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;background:'+clr.l+';color:'+clr.c+';flex-shrink:0;';
+      ev.textContent=(row.time?row.time+' ':'')+row.title;
+      ev.title=row.title+(row.time?' at '+row.time:'');
+      col.appendChild(ev);
+    });
+
+    // Add event button
+    var addBtn=document.createElement('button');
+    addBtn.style.cssText='font-size:0.5rem;color:var(--muted);background:none;border:1px dashed var(--border);border-radius:4px;padding:1px;cursor:pointer;width:100%;font-family:Nunito,sans-serif;margin-top:1px;';
+    addBtn.textContent='+ add';
+    addBtn.onclick=(function(ds){ return function(){ openCalModalForDate(ds); }; })(dateStr);
+    col.appendChild(addBtn);
+
+    grid.appendChild(col);
+  }
+}
+
 function openCalModal(){openCalModalForDate('');}
 function openCalModalForDate(date){
   document.getElementById('calEventTitle').value='';
@@ -1077,17 +1123,17 @@ function resetYelling(){yellData={papa:0,mama:0,emma:0};localStorage.setItem('ye
 
 // ── GROCERY ───────────────────────────────────────────────────
 var GROCERY_MASTER=[
-  {name:'Milk',store:'tj',qty:1},{name:'Eggs (dozen)',store:'co',qty:2},{name:'Bread',store:'tj',qty:1},{name:'Butter',store:'co',qty:1},
-  {name:'Chicken breasts',store:'co',qty:1},{name:'Ground beef',store:'co',qty:1},{name:'Pasta',store:'tj',qty:2},{name:'Marinara sauce',store:'tj',qty:2},
-  {name:'Rice',store:'co',qty:1},{name:'Olive oil',store:'co',qty:1},{name:'Cheddar cheese',store:'tj',qty:1},{name:'Yogurt',store:'tj',qty:2},
-  {name:'Orange juice',store:'tj',qty:1},{name:'Apple juice boxes',store:'co',qty:1},{name:'Baby carrots',store:'tj',qty:1},{name:'Broccoli',store:'tj',qty:1},
-  {name:'Bananas',store:'tj',qty:1},{name:'Apples',store:'tj',qty:1},{name:'Cereal',store:'co',qty:1},{name:'Granola bars',store:'co',qty:1},
-  {name:'Crackers',store:'co',qty:1},{name:'Peanut butter',store:'co',qty:1},{name:'Jelly',store:'tj',qty:1},{name:'Frozen pizza',store:'co',qty:2},
-  {name:'Fish sticks',store:'tj',qty:1},{name:'Mac & cheese',store:'tj',qty:3},{name:'Dish soap',store:'co',qty:1},{name:'Paper towels',store:'co',qty:1},
+  {name:'Milk',store:'tj',qty:0},{name:'Eggs (dozen)',store:'co',qty:0},{name:'Bread',store:'tj',qty:0},{name:'Butter',store:'co',qty:0},
+  {name:'Chicken breasts',store:'co',qty:0},{name:'Ground beef',store:'co',qty:0},{name:'Pasta',store:'tj',qty:0},{name:'Marinara sauce',store:'tj',qty:0},
+  {name:'Rice',store:'co',qty:0},{name:'Olive oil',store:'co',qty:0},{name:'Cheddar cheese',store:'tj',qty:0},{name:'Yogurt',store:'tj',qty:0},
+  {name:'Orange juice',store:'tj',qty:0},{name:'Apple juice boxes',store:'co',qty:0},{name:'Baby carrots',store:'tj',qty:0},{name:'Broccoli',store:'tj',qty:0},
+  {name:'Bananas',store:'tj',qty:0},{name:'Apples',store:'tj',qty:0},{name:'Cereal',store:'co',qty:0},{name:'Granola bars',store:'co',qty:0},
+  {name:'Crackers',store:'co',qty:0},{name:'Peanut butter',store:'co',qty:0},{name:'Jelly',store:'tj',qty:0},{name:'Frozen pizza',store:'co',qty:0},
+  {name:'Fish sticks',store:'tj',qty:0},{name:'Mac & cheese',store:'tj',qty:0},{name:'Dish soap',store:'co',qty:0},{name:'Paper towels',store:'co',qty:0},
 ];
 var groceryItems=[];
 try{groceryItems=JSON.parse(localStorage.getItem('groceryItems')||'null');}catch(e){}
-if(!groceryItems){groceryItems=GROCERY_MASTER.map(function(i){return{name:i.name,store:i.store,qty:i.qty,checked:false};});localStorage.setItem('groceryItems',JSON.stringify(groceryItems));}
+if(!groceryItems||groceryItems.length===0){groceryItems=GROCERY_MASTER.map(function(i){return{name:i.name,store:i.store,qty:0,checked:false};});localStorage.setItem('groceryItems',JSON.stringify(groceryItems));}
 var gFilter='all',gNewStore='tj';
 
 function openGrocery(){document.getElementById('groceryModal').classList.add('open');renderGrocery();setGroceryStore('tj',document.getElementById('gpick-tj'));}
@@ -1447,6 +1493,7 @@ renderYelling();
 renderGrocery();
 updateSheetStatus();updatePhotoCount();
 updateTallySummary();updateSparkDisplay();
+renderWeekGrid([]);
 if(SHEET_ID)syncFromSheet();
 else setBanner('error','⚠️ No Sheet — tap ⚙️');
 setInterval(syncFromSheet,60*60*1000);
