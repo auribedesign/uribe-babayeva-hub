@@ -403,6 +403,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--ink);}
       <span style="font-size:0.63rem;font-weight:900;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted)">📷 Screensaver Photos</span>
       <p style="font-size:0.68rem;color:var(--muted);margin:6px 0">Connect Google Photos to auto-load from your shared album:</p>
       <button class="btn btn-primary btn-sm btn-full" id="gPhotosConnectBtn" onclick="connectGooglePhotos()" style="margin-bottom:6px">🔗 Connect Google Photos</button>
+      <button class="btn btn-amber btn-sm btn-full" onclick="if(photosAccessToken){loadPictureFramesAlbum();}else{alert('Connect first!');}" style="margin-bottom:6px">📸 Load Picture Frames Album</button>
       <div id="gPhotosStatus" style="font-size:0.7rem;font-weight:800;color:var(--muted);margin-bottom:8px"></div>
       <div id="albumList" style="display:none;max-height:160px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;padding:6px"></div>
       <div style="border-top:1px dashed var(--border);margin:8px 0;padding-top:8px">
@@ -1560,7 +1561,9 @@ function loadAlbums(){
 }
 
 function loadPhotosFromAlbum(albumId){
-  if(!photosAccessToken||!albumId) return;
+  if(!photosAccessToken) return;
+  // Use hardcoded album ID if none provided
+  if(!albumId) albumId = 'AF1QipMQyubnQMm0tkjMzgm57JD4eO5d147bJJ3JAFhRF7ZV93JpmsfTQnJBEYCsJMEIuA';
   document.getElementById('gPhotosStatus').textContent='⏳ Loading photos…';
   fetch('https://photoslibrary.googleapis.com/v1/mediaItems:search', {
     method:'POST',
@@ -1569,18 +1572,37 @@ function loadPhotosFromAlbum(albumId){
   })
   .then(function(r){ return r.json(); })
   .then(function(data){
+    if(data.error){
+      // Try as shared album
+      return fetch('https://photoslibrary.googleapis.com/v1/mediaItems:search', {
+        method:'POST',
+        headers:{ Authorization:'Bearer '+photosAccessToken, 'Content-Type':'application/json' },
+        body: JSON.stringify({ albumId:albumId, pageSize:50 })
+      }).then(function(r2){ return r2.json(); });
+    }
+    return data;
+  })
+  .then(function(data){
     var items = data.mediaItems || [];
-    // Filter to photos only and get display URLs
+    if(!items.length){
+      document.getElementById('gPhotosStatus').textContent='⚠️ No photos found in album. Try reconnecting.';
+      return;
+    }
     photos = items
       .filter(function(item){ return item.mimeType && item.mimeType.startsWith('image/'); })
       .map(function(item){ return item.baseUrl+'=w1920-h1080'; });
     try{ localStorage.setItem('ss-photos', JSON.stringify(photos)); }catch(e){}
     updatePhotoCount();
-    document.getElementById('gPhotosStatus').textContent='✅ '+photos.length+' photos loaded!';
+    document.getElementById('gPhotosStatus').textContent='✅ '+photos.length+' photos loaded from Picture Frames!';
   })
   .catch(function(e){
-    document.getElementById('gPhotosStatus').textContent='⚠️ Could not load photos.';
+    document.getElementById('gPhotosStatus').textContent='⚠️ Could not load photos: '+e.toString();
   });
+}
+
+// Load directly from known album after connect
+function loadPictureFramesAlbum(){
+  loadPhotosFromAlbum('AF1QipMQyubnQMm0tkjMzgm57JD4eO5d147bJJ3JAFhRF7ZV93JpmsfTQnJBEYCsJMEIuA');
 }
 
 // Auto-reload photos on open if token exists
