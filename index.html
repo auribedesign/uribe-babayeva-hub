@@ -408,9 +408,9 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--ink);}
     </div>
     <div class="settings-section">
       <span style="font-size:0.63rem;font-weight:900;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted)">📷 Screensaver Photos</span>
-      <p style="font-size:0.68rem;color:var(--muted);margin:6px 0">Connect Google Photos to auto-load from your shared album:</p>
-      <button class="btn btn-primary btn-sm btn-full" id="gPhotosConnectBtn" onclick="connectGooglePhotos()" style="margin-bottom:6px">🔗 Connect Google Photos</button>
-      <button class="btn btn-amber btn-sm btn-full" onclick="if(photosAccessToken){loadPhotosFromAlbum();}else{alert('Connect first!');}" style="margin-bottom:6px">📸 Reload Photos</button>
+      <p style="font-size:0.68rem;color:var(--muted);margin:6px 0">Connect Google Drive to load photos & videos uploaded from the mobile app.</p>
+      <button class="btn btn-primary btn-sm btn-full" id="driveConnectBtn" onclick="connectDriveScreensaver()" style="margin-bottom:6px">🔗 Connect Google Drive</button>
+      <button class="btn btn-amber btn-sm btn-full" onclick="if(photosAccessToken){loadDriveMediaForScreensaver();}else{alert('Connect Google Drive first!');}" style="margin-bottom:6px">📸 Reload from Drive</button>
       <div id="gPhotosStatus" style="font-size:0.7rem;font-weight:800;color:var(--muted);margin-bottom:8px"></div>
       <div style="border-top:1px dashed var(--border);margin:8px 0;padding-top:8px">
         <span style="font-size:0.63rem;font-weight:900;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted)">Or upload manually</span>
@@ -1626,6 +1626,7 @@ function loadPictureFramesAlbum(){ loadPhotosFromAlbum(); }
 // Load media from Google Drive folder for screensaver
 function tryAutoLoadPhotos(){
   if(photosAccessToken){
+    document.getElementById('driveConnectBtn').textContent='✅ Drive Connected';
     loadDriveMediaForScreensaver();
   }
 }
