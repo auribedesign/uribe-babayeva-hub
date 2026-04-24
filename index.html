@@ -711,8 +711,8 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--ink);}
   </div>
 
   <!-- MEALS -->
-  <div class="content" id="view-meals" style="grid-template-columns:repeat(7,1fr);grid-template-rows:30px 1fr 1fr 1fr;gap:8px;">
-    <div class="meals-hdr">
+  <div class="content" id="view-meals" style="grid-template-columns:repeat(7,1fr);grid-template-rows:30px 28px 1fr 1fr 1fr;gap:8px;">
+    <div class="meals-hdr" style="grid-column:1/-1;grid-row:1">
       <h2>🍽 Weekly Meal Plan</h2>
       <button class="btn btn-primary btn-sm" id="suggestBtn" onclick="suggestMeals()">✨ AI Suggest</button>
       <span style="font-size:0.68rem;color:var(--muted);font-weight:700">Tap any cell to edit</span>
@@ -1262,7 +1262,6 @@ function renderGrocery(){
 }
 function toggleGrocery(i){groceryItems[i].checked=!groceryItems[i].checked;saveGrocery();renderGrocery();}
 function setItemStore(i,store){groceryItems[i].store=store.replace(/&quot;/g,'');saveGrocery();renderGrocery();}
-function setItemStore(i,store){groceryItems[i].store=store.replace(/&quot;/g,'');saveGrocery();renderGrocery();}
 function changeQty(i,d){groceryItems[i].qty=Math.max(1,groceryItems[i].qty+d);saveGrocery();renderGrocery();}
 function removeGrocery(i){groceryItems.splice(i,1);saveGrocery();renderGrocery();}
 function addGroceryItem(){
@@ -1472,7 +1471,12 @@ async function suggestMeals(){
 // ── ROULETTE ──────────────────────────────────────────────────
 var RCOLORS=['#4F7DFF','#FF6B9D','#F59E0B','#10B981','#8B5CF6','#F97316','#06B6D4','#84CC16'];
 var rMode='prizes',rData={prizes:[],activities:[],weekend:[]},isSpinning=false,spinLog=[];
-try{rData=JSON.parse(localStorage.getItem('rouletteData')||'{"prizes":[],"activities":[]}');}catch(e){}
+try{
+  var _rd=JSON.parse(localStorage.getItem('rouletteData')||'{}');
+  rData.prizes=_rd.prizes||[];
+  rData.activities=_rd.activities||[];
+  rData.weekend=_rd.weekend||[];
+}catch(e){}
 try{spinLog=JSON.parse(localStorage.getItem('spinHistory')||'[]');}catch(e){}
 if(!rData.prizes.length)rData.prizes=[{label:'Movie Night',emoji:'🎬'},{label:'Ice Cream',emoji:'🍦'},{label:'Extra Screen Time',emoji:'📱'},{label:'Choose Dinner',emoji:'🍕'},{label:'Toy Store Trip',emoji:'🧸'},{label:'Spa Night',emoji:'💅'}];
 if(!rData.activities.length)rData.activities=[{label:'Board Game',emoji:'🎲'},{label:'Dance Party',emoji:'💃'},{label:'Art Project',emoji:'🎨'},{label:'Bake Together',emoji:'🍪'},{label:'Movie Pick',emoji:'🎥'},{label:'Park Walk',emoji:'🌳'}];
@@ -1576,52 +1580,7 @@ async function loadWeather(){
   }catch(e){document.getElementById('weatherPill').textContent='🌡 SI';}
 }
 
-// ── GOOGLE PHOTOS ────────────────────────────────────────────
-function connectGooglePhotos(){
-  var client = google.accounts.oauth2.initTokenClient({
-    client_id: PHOTOS_CLIENT_ID,
-    scope: 'https://www.googleapis.com/auth/photoslibrary.readonly https://www.googleapis.com/auth/drive.readonly',
-    callback: function(response){
-      if(response.error){ document.getElementById('gPhotosStatus').textContent='❌ '+response.error; return; }
-      photosAccessToken = response.access_token;
-      localStorage.setItem('photosToken', photosAccessToken);
-      document.getElementById('gPhotosStatus').textContent='✅ Connected! Loading photos…';
-      loadPhotosFromAlbum();
-    }
-  });
-  client.requestAccessToken();
-}
-
-
-function loadPhotosFromAlbum(){
-  if(!photosAccessToken) return;
-  document.getElementById('gPhotosStatus').textContent='⏳ Loading photos from library…';
-  // Load directly from Google Photos library (no album filter)
-  fetch('https://photoslibrary.googleapis.com/v1/mediaItems?pageSize=100', {
-    method:'GET',
-    headers:{ Authorization:'Bearer '+photosAccessToken, 'Content-Type':'application/json' }
-  })
-  .then(function(r){ return r.json(); })
-  .then(function(data){
-    var items = data.mediaItems || [];
-    if(!items.length){
-      document.getElementById('gPhotosStatus').textContent='⚠️ No photos found. Make sure photos are saved to emmabellauribe@gmail.com library.';
-      console.log('API response:', JSON.stringify(data));
-      return;
-    }
-    photos = items
-      .filter(function(item){ return item.mimeType && item.mimeType.startsWith('image/'); })
-      .map(function(item){ return item.baseUrl+'=w1920-h1080'; });
-    try{ localStorage.setItem('ss-photos', JSON.stringify(photos)); }catch(e){}
-    updatePhotoCount();
-    document.getElementById('gPhotosStatus').textContent='✅ '+photos.length+' photos loaded!';
-  })
-  .catch(function(e){
-    document.getElementById('gPhotosStatus').textContent='⚠️ Could not load photos: '+e.toString();
-  });
-}
-
-function loadPictureFramesAlbum(){ loadPhotosFromAlbum(); }
+// ── GOOGLE DRIVE SCREENSAVER ─────────────────────────────────
 
 // Load media from Google Drive folder for screensaver
 function tryAutoLoadPhotos(){
@@ -1695,8 +1654,6 @@ function connectDriveScreensaver(){
   if(!driveTokenClient){ statusEl.textContent='⚠️ Could not initialize. Refresh the page and try again.'; return; }
   driveTokenClient.requestAccessToken();
 }
-function connectGooglePhotos(){ connectDriveScreensaver(); }
-
 // ── INIT ──────────────────────────────────────────────────────
 buildMeals();
 loadWeather();
