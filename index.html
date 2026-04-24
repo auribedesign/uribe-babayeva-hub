@@ -1663,6 +1663,32 @@ async function loadDriveMediaForScreensaver(){
   }
 }
 
+// ── DRIVE SCREENSAVER CONNECTION ─────────────────────────────
+function connectDriveScreensaver(){
+  if(typeof google === 'undefined'){
+    document.getElementById('gPhotosStatus').textContent='⚠️ Google script not loaded yet. Try again in a moment.';
+    return;
+  }
+  var client = google.accounts.oauth2.initTokenClient({
+    client_id: PHOTOS_CLIENT_ID,
+    scope: 'https://www.googleapis.com/auth/drive.readonly',
+    callback: function(response){
+      if(response.error){
+        document.getElementById('gPhotosStatus').textContent='❌ '+response.error;
+        return;
+      }
+      photosAccessToken = response.access_token;
+      localStorage.setItem('photosToken', photosAccessToken);
+      document.getElementById('gPhotosStatus').textContent='✅ Connected! Loading from Drive…';
+      var btn = document.getElementById('driveConnectBtn');
+      if(btn) btn.textContent='✅ Drive Connected';
+      loadDriveMediaForScreensaver();
+    }
+  });
+  client.requestAccessToken();
+}
+function connectGooglePhotos(){ connectDriveScreensaver(); }
+
 // ── INIT ──────────────────────────────────────────────────────
 buildMeals();
 loadWeather();
