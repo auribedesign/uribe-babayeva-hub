@@ -942,7 +942,7 @@ function showNextPhoto(){
   if(!photos.length) return;
   var idx2 = ssIdx % photos.length;
   var src = photos[idx2];
-  var mediaItem = driveMediaUrls[idx2];
+  var mediaItem = (driveMediaUrls && driveMediaUrls.length > idx2) ? driveMediaUrls[idx2] : null;
   ssIdx++;
   var isVideo = mediaItem && mediaItem.type === 'video';
   if(isVideo){
