@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Family Hub Mobile</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Fredoka+One&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#F2F4F8; --card:#FFF; --ink:#1A1A2E; --muted:#8890A6;
+  --border:rgba(0,0,0,0.08); --shadow:0 2px 16px rgba(0,0,0,0.08);
+  --blue:#4F7DFF; --blue-l:#EEF2FF;
+  --teal:#10B981; --teal-l:#ECFDF5;
+  --amber:#F59E0B; --amber-l:#FFF8E7;
+  --pink:#FF6B9D; --pink-l:#FFF0F6;
+  --red:#EF4444; --red-l:#FEF2F2;
+  --coral:#F97316;
+  --tj:#C8102E; --co:#005DAA;
+  --radius:16px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color:var(--ink);}
+body{padding-bottom:80px;}
+
+.topbar{background:var(--card);padding:16px 20px 12px;box-shadow:var(--shadow);position:sticky;top:0;z-index:100;}
+.topbar-brand{font-family:'Fredoka One',cursive;font-size:1.2rem;background:linear-gradient(135deg,var(--blue),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.topbar-sub{font-size:0.65rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;}
+.topbar-row{display:flex;align-items:center;justify-content:space-between;}
+
+.tab-bar{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--border);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom);}
+.tab-item{flex:1;display:flex;flex-direction:column;align-items:center;padding:10px 0;cursor:pointer;border:none;background:transparent;font-family:'Nunito',sans-serif;}
+.tab-icon{font-size:1.5rem;margin-bottom:2px;}
+.tab-label{font-size:0.62rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;}
+.tab-item.active .tab-label{color:var(--blue);}
+.tab-item.active .tab-icon{transform:scale(1.1);}
+
+.view{display:none;padding:16px;}
+.view.active{display:block;}
+
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin-bottom:14px;}
+.card-title{font-family:'Fredoka One',cursive;font-size:1.05rem;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+
+.btn{border:none;border-radius:12px;padding:12px 20px;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.9rem;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;justify-content:center;gap:6px;width:100%;margin-bottom:8px;}
+.btn:active{transform:scale(0.97);}
+.btn:disabled{opacity:0.5;cursor:not-allowed;}
+.btn-primary{background:var(--blue);color:white;}
+.btn-success{background:var(--teal);color:white;}
+.btn-amber{background:var(--amber);color:white;}
+.btn-pink{background:var(--pink);color:white;}
+.btn-ghost{background:var(--bg);color:var(--ink);border:1.5px solid var(--border);}
+.btn-red{background:var(--red);color:white;}
+.btn-sm{padding:8px 14px;font-size:0.78rem;border-radius:10px;width:auto;margin-bottom:0;}
+
+.store-filter-row{display:flex;gap:8px;margin-bottom:16px;}
+.store-chip{flex:1;padding:10px;border-radius:12px;border:2px solid var(--border);background:var(--card);font-family:'Nunito',sans-serif;font-size:0.8rem;font-weight:800;cursor:pointer;text-align:center;}
+.store-chip.active-all{background:var(--ink);color:white;border-color:var(--ink);}
+.store-chip.active-tj{background:#FFF0F0;color:var(--tj);border-color:var(--tj);}
+.store-chip.active-co{background:#EEF4FF;color:var(--co);border-color:var(--co);}
+
+.grocery-item{display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid var(--border);}
+.grocery-item:last-child{border-bottom:none;}
+.grocery-item.checked{opacity:0.38;}
+.grocery-item.checked .g-name{text-decoration:line-through;}
+.g-checkbox{width:28px;height:28px;border-radius:8px;border:2.5px solid var(--teal);flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.15s;}
+.grocery-item.checked .g-checkbox{background:var(--teal);}
+.g-info{flex:1;min-width:0;}
+.g-name{font-size:0.95rem;font-weight:700;}
+.g-store-badge{font-size:0.65rem;font-weight:900;padding:2px 8px;border-radius:20px;display:inline-block;margin-top:3px;}
+.g-store-tj{background:#FFF0F0;color:var(--tj);}
+.g-store-co{background:#EEF4FF;color:var(--co);}
+.g-qty-ctrl{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.qty-btn{width:32px;height:32px;border-radius:50%;border:none;cursor:pointer;font-size:1.1rem;font-weight:900;display:flex;align-items:center;justify-content:center;}
+.qty-minus{background:var(--bg);color:var(--muted);}
+.qty-plus{background:var(--teal-l);color:var(--teal);}
+.qty-val{font-size:1rem;font-weight:800;min-width:24px;text-align:center;}
+
+.form-input{width:100%;border:1.5px solid var(--border);border-radius:10px;padding:11px 14px;font-size:0.9rem;font-family:'Nunito',sans-serif;background:var(--card);outline:none;color:var(--ink);margin-bottom:10px;}
+.form-input:focus{border-color:var(--blue);}
+.store-pick-row{display:flex;gap:8px;margin-bottom:10px;}
+.store-pick-btn{flex:1;border:2px solid var(--border);border-radius:10px;padding:10px;cursor:pointer;font-family:'Nunito',sans-serif;font-size:0.82rem;font-weight:800;background:white;text-align:center;transition:all 0.15s;}
+.store-pick-btn.tj-active{background:#FFF0F0;border-color:var(--tj);color:var(--tj);}
+.store-pick-btn.co-active{background:#EEF4FF;border-color:var(--co);color:var(--co);}
+
+/* Saved lists */
+.saved-list-item{display:flex;align-items:center;gap:10px;padding:12px;border:1.5px solid var(--border);border-radius:12px;margin-bottom:8px;cursor:pointer;transition:all 0.15s;}
+.saved-list-item:active{background:var(--blue-l);}
+.saved-list-date{font-family:'Fredoka One',cursive;font-size:0.9rem;color:var(--blue);}
+.saved-list-info{flex:1;}
+.saved-list-count{font-size:0.72rem;color:var(--muted);font-weight:700;}
+.saved-list-actions{display:flex;gap:6px;}
+
+/* Media upload */
+.upload-zone{border:2px dashed var(--border);border-radius:14px;padding:28px;text-align:center;cursor:pointer;transition:all 0.15s;margin-bottom:14px;background:var(--bg);}
+.upload-zone:active{border-color:var(--blue);background:var(--blue-l);}
+.upload-icon{font-size:2.5rem;margin-bottom:8px;}
+.upload-text{font-size:0.85rem;font-weight:700;color:var(--muted);}
+.upload-sub{font-size:0.72rem;color:var(--muted);margin-top:4px;}
+#mediaFileInput{display:none;}
+
+.media-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;}
+.media-thumb{aspect-ratio:1;border-radius:10px;object-fit:cover;width:100%;background:var(--bg);}
+.media-thumb-wrap{position:relative;}
+.media-del{position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,0.6);color:white;border:none;cursor:pointer;font-size:0.75rem;display:flex;align-items:center;justify-content:center;}
+
+.progress-bar-wrap{background:var(--bg);border-radius:20px;height:10px;overflow:hidden;margin:8px 0;}
+.progress-bar{background:linear-gradient(90deg,var(--blue),var(--teal));height:100%;border-radius:20px;transition:width 0.3s ease;width:0%;}
+
+/* Drive status */
+.drive-status{font-size:0.78rem;font-weight:800;padding:10px 14px;border-radius:10px;margin-bottom:12px;text-align:center;}
+.ds-ok{background:var(--teal-l);color:var(--teal);}
+.ds-err{background:var(--red-l);color:var(--red);}
+.ds-loading{background:var(--amber-l);color:#92400E;}
+
+.sync-status{font-size:0.72rem;font-weight:800;padding:8px 12px;border-radius:10px;margin-bottom:12px;text-align:center;}
+.sync-ok{background:var(--teal-l);color:var(--teal);}
+.sync-err{background:var(--red-l);color:var(--red);}
+.sync-loading{background:var(--amber-l);color:#92400E;}
+
+.empty-state{text-align:center;padding:32px;color:var(--muted);font-size:0.85rem;font-weight:700;font-style:italic;}
+
+#pinScreen{position:fixed;inset:0;background:var(--bg);z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;}
+.pin-brand{font-family:'Fredoka One',cursive;font-size:1.8rem;background:linear-gradient(135deg,var(--blue),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px;}
+.pin-sub{font-size:0.78rem;font-weight:700;color:var(--muted);margin-bottom:32px;}
+.pin-dots{display:flex;gap:14px;margin-bottom:28px;}
+.pin-dot{width:16px;height:16px;border-radius:50%;border:2.5px solid var(--border);background:transparent;transition:all 0.15s;}
+.pin-dot.filled{background:var(--blue);border-color:var(--blue);}
+.pin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;width:100%;max-width:280px;}
+.pin-key{background:var(--card);border:none;border-radius:14px;padding:18px;font-family:'Fredoka One',cursive;font-size:1.5rem;cursor:pointer;box-shadow:var(--shadow);color:var(--ink);}
+.pin-key:active{transform:scale(0.94);background:var(--blue-l);}
+.pin-error{color:var(--red);font-size:0.78rem;font-weight:800;margin-top:12px;min-height:20px;}
+
+.spinner{display:inline-block;width:16px;height:16px;border:2.5px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin 0.7s linear infinite;vertical-align:middle;}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<!-- PIN -->
+<div id="pinScreen">
+  <div class="pin-brand">🏠 Family Hub</div>
+  <div class="pin-sub">Enter PIN to continue</div>
+  <div class="pin-dots">
+    <div class="pin-dot" id="pd0"></div><div class="pin-dot" id="pd1"></div>
+    <div class="pin-dot" id="pd2"></div><div class="pin-dot" id="pd3"></div>
+  </div>
+  <div class="pin-grid">
+    <button class="pin-key" onclick="pinKey('1')">1</button>
+    <button class="pin-key" onclick="pinKey('2')">2</button>
+    <button class="pin-key" onclick="pinKey('3')">3</button>
+    <button class="pin-key" onclick="pinKey('4')">4</button>
+    <button class="pin-key" onclick="pinKey('5')">5</button>
+    <button class="pin-key" onclick="pinKey('6')">6</button>
+    <button class="pin-key" onclick="pinKey('7')">7</button>
+    <button class="pin-key" onclick="pinKey('8')">8</button>
+    <button class="pin-key" onclick="pinKey('9')">9</button>
+    <button class="pin-key" onclick="pinBackspace()" style="font-size:1rem">⌫</button>
+    <button class="pin-key" onclick="pinKey('0')">0</button>
+    <button class="pin-key" onclick="unlockApp()" style="font-size:0.65rem;color:var(--muted)">Skip</button>
+  </div>
+  <div class="pin-error" id="pinError"></div>
+</div>
+
+<!-- APP -->
+<div id="appShell" style="display:none">
+  <div class="topbar">
+    <div class="topbar-row">
+      <div>
+        <div class="topbar-brand">🏠 Family Hub</div>
+        <div class="topbar-sub">Mobile Companion</div>
+      </div>
+      <div id="driveConnectStatus" style="font-size:0.7rem;font-weight:800;color:var(--muted)">Not connected</div>
+    </div>
+  </div>
+
+  <!-- GROCERY VIEW -->
+  <div class="view active" id="view-grocery">
+
+    <!-- Saved lists -->
+    <div class="card">
+      <div class="card-title">📋 Saved Lists</div>
+      <div id="savedListsContainer"><div class="empty-state">No saved lists yet</div></div>
+      <button class="btn btn-ghost btn-sm" onclick="showNewListPanel()" style="margin-top:8px;width:100%">+ Start New List</button>
+    </div>
+
+    <!-- Active list -->
+    <div id="activeListPanel" style="display:none">
+      <div class="card">
+        <div class="card-title">
+          🛒 <span id="activeListName">Shopping List</span>
+          <button class="btn btn-amber btn-sm" onclick="saveActiveList()" style="margin-left:auto">💾 Save</button>
+        </div>
+        <div class="sync-status sync-loading" id="grocerySyncStatus">⏳ Loading…</div>
+
+        <div class="store-filter-row">
+          <button class="store-chip active-all" id="chip-all" onclick="filterGrocery('all',this)">All</button>
+          <button class="store-chip" id="chip-tj" onclick="filterGrocery('tj',this)">🛍 TJ's</button>
+          <button class="store-chip" id="chip-co" onclick="filterGrocery('co',this)">🏪 Costco</button>
+        </div>
+
+        <div id="groceryList"></div>
+
+        <!-- Add item -->
+        <div style="margin-top:14px;padding-top:14px;border-top:1px dashed var(--border)">
+          <input class="form-input" id="newItemName" placeholder="Add item…" onkeydown="if(event.key==='Enter')addMobileGroceryItem()">
+          <div class="store-pick-row">
+            <button class="store-pick-btn tj-active" id="mpick-tj" onclick="setMobileStore('tj',this)" style="flex:1.4">🛍 Trader Joe's</button>
+            <button class="store-pick-btn" id="mpick-co" onclick="setMobileStore('co',this)">🏪 Costco</button>
+          </div>
+          <button class="btn btn-success" onclick="addMobileGroceryItem()">+ Add Item</button>
+        </div>
+      </div>
+
+      <button class="btn btn-ghost" onclick="clearChecked()">🗑 Clear Checked Items</button>
+    </div>
+
+  </div>
+
+  <!-- MEDIA VIEW -->
+  <div class="view" id="view-media">
+
+    <!-- Drive connect -->
+    <div class="card" id="driveConnectCard">
+      <div class="card-title">☁️ Google Drive</div>
+      <p style="font-size:0.82rem;color:var(--muted);font-weight:700;margin-bottom:14px">Connect to sync photos and videos to the kitchen screensaver.</p>
+      <button class="btn btn-primary" onclick="connectDrive()">🔗 Connect Google Drive</button>
+      <div id="driveStatus" class="drive-status ds-loading" style="display:none"></div>
+    </div>
+
+    <!-- Upload -->
+    <div class="card">
+      <div class="card-title">📤 Upload Media</div>
+      <div class="upload-zone" onclick="document.getElementById('mediaFileInput').click()">
+        <div class="upload-icon">📷</div>
+        <div class="upload-text">Tap to take photo/video or choose from library</div>
+        <div class="upload-sub">Photos & videos up to 2 minutes</div>
+      </div>
+      <input type="file" id="mediaFileInput" accept="image/*,video/*" multiple onchange="handleMediaSelect(this)">
+
+      <div id="pendingMediaGrid" class="media-grid"></div>
+      <div id="uploadProgress" style="display:none">
+        <div class="progress-bar-wrap"><div class="progress-bar" id="progressBar"></div></div>
+        <div id="uploadProgressText" style="font-size:0.72rem;font-weight:800;color:var(--muted);text-align:center"></div>
+      </div>
+      <button class="btn btn-primary" id="uploadBtn" onclick="uploadToDrive()" style="display:none">📤 Upload to Kitchen Hub</button>
+    </div>
+
+    <!-- Current media -->
+    <div class="card">
+      <div class="card-title">🖼 Kitchen Screensaver</div>
+      <div id="driveMediaStatus" style="font-size:0.78rem;font-weight:700;color:var(--muted);margin-bottom:10px">Connect Drive to see current media</div>
+      <div class="media-grid" id="driveMediaGrid"></div>
+    </div>
+
+  </div>
+
+  <!-- TAB BAR -->
+  <div class="tab-bar">
+    <button class="tab-item active" id="tab-grocery" onclick="switchTab('grocery',this)">
+      <div class="tab-icon">🛒</div>
+      <div class="tab-label">Grocery</div>
+    </button>
+    <button class="tab-item" id="tab-media" onclick="switchTab('media',this)">
+      <div class="tab-icon">📸</div>
+      <div class="tab-label">Photos</div>
+    </button>
+  </div>
+
+</div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────────
+var SHEET_ID = '1kbW4EcYvt6gu-st1tWY4G9QpCa3KvGPq2EtCWxeur1M';
+var DRIVE_FOLDER_ID = '1VrGefC8FXO5-E7P8ree44DgQz2RGslom';
+var PHOTOS_CLIENT_ID = '801480570402-brbo6se67g4g8kbckijlbbmffkb13u2s.apps.googleusercontent.com';
+var USER_PIN = localStorage.getItem('userPin') || '1234';
+var driveToken = '';
+var WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+// ── PIN ───────────────────────────────────────────────────────
+var pinBuf = '';
+function pinKey(d){
+  if(pinBuf.length>=4) return;
+  pinBuf+=d; updatePinDots();
+  if(pinBuf.length===4){
+    if(pinBuf===USER_PIN){ unlockApp(); }
+    else{
+      document.getElementById('pinError').textContent='❌ Incorrect PIN';
+      setTimeout(function(){ pinBuf=''; updatePinDots(); document.getElementById('pinError').textContent=''; },1000);
+    }
+  }
+}
+function pinBackspace(){ pinBuf=pinBuf.slice(0,-1); updatePinDots(); }
+function updatePinDots(){
+  for(var i=0;i<4;i++) document.getElementById('pd'+i).classList.toggle('filled',i<pinBuf.length);
+}
+function unlockApp(){
+  document.getElementById('pinScreen').style.display='none';
+  document.getElementById('appShell').style.display='block';
+  loadSavedLists();
+  cleanOldLists();
+}
+
+// ── TABS ──────────────────────────────────────────────────────
+function switchTab(name,btn){
+  document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('active'); });
+  document.querySelectorAll('.tab-item').forEach(function(b){ b.classList.remove('active'); });
+  document.getElementById('view-'+name).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ── GROCERY LISTS ─────────────────────────────────────────────
+var savedLists = [];
+var activeList = null;
+var groceryItems = [];
+var gFilter = 'all', mNewStore = 'tj';
+
+try{ savedLists = JSON.parse(localStorage.getItem('savedGroceryLists')||'[]'); }catch(e){}
+
+function getWeekKey(){ return new Date().toISOString().substring(0,10); }
+
+function cleanOldLists(){
+  var now = Date.now();
+  savedLists = savedLists.filter(function(list){
+    return !list.savedAt || (now - list.savedAt) < WEEK_MS;
+  });
+  localStorage.setItem('savedGroceryLists', JSON.stringify(savedLists));
+  loadSavedLists();
+}
+
+function loadSavedLists(){
+  var container = document.getElementById('savedListsContainer');
+  if(!savedLists.length){
+    container.innerHTML = '<div class="empty-state">No saved lists yet — start a new one!</div>';
+    return;
+  }
+  container.innerHTML = '';
+  savedLists.slice().reverse().forEach(function(list, revIdx){
+    var idx = savedLists.length - 1 - revIdx;
+    var itemCount = list.items.filter(function(i){ return i.qty > 0; }).length;
+    var checkedCount = list.items.filter(function(i){ return i.checked; }).length;
+    var div = document.createElement('div');
+    div.className = 'saved-list-item';
+    div.innerHTML =
+      '<div class="saved-list-info">'
+        +'<div class="saved-list-date">📋 '+list.name+'</div>'
+        +'<div class="saved-list-count">'+itemCount+' items · '+checkedCount+' checked · Saved '+new Date(list.savedAt).toLocaleDateString('en-US',{month:'short',day:'numeric'})+'</div>'
+      +'</div>'
+      +'<div class="saved-list-actions">'
+        +'<button class="btn btn-primary btn-sm" onclick="loadList('+idx+')">Open</button>'
+        +'<button class="btn btn-ghost btn-sm" onclick="deleteList('+idx+')" style="color:var(--red)">✕</button>'
+      +'</div>';
+    container.appendChild(div);
+  });
+}
+
+function showNewListPanel(){
+  // Load master list from sheet as starting point
+  activeList = null;
+  document.getElementById('activeListPanel').style.display = 'block';
+  document.getElementById('activeListName').textContent = 'New List — ' + new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  setSyncStatus('loading','⏳ Loading master list…');
+  loadMasterList();
+}
+
+function loadList(idx){
+  activeList = idx;
+  var list = savedLists[idx];
+  groceryItems = JSON.parse(JSON.stringify(list.items)); // deep copy
+  document.getElementById('activeListName').textContent = list.name;
+  document.getElementById('activeListPanel').style.display = 'block';
+  setSyncStatus('ok','✅ List loaded — '+groceryItems.length+' items');
+  renderGroceryList();
+}
+
+function deleteList(idx){
+  if(!confirm('Delete this list?')) return;
+  savedLists.splice(idx,1);
+  localStorage.setItem('savedGroceryLists', JSON.stringify(savedLists));
+  loadSavedLists();
+}
+
+function saveActiveList(){
+  var name = document.getElementById('activeListName').textContent;
+  var listObj = {
+    name: name,
+    savedAt: Date.now(),
+    items: JSON.parse(JSON.stringify(groceryItems))
+  };
+  if(activeList !== null){
+    savedLists[activeList] = listObj;
+  } else {
+    savedLists.push(listObj);
+    activeList = savedLists.length - 1;
+  }
+  localStorage.setItem('savedGroceryLists', JSON.stringify(savedLists));
+  loadSavedLists();
+  setSyncStatus('ok','✅ List saved! — '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}));
+}
+
+async function loadMasterList(){
+  try{
+    // Load from Google Sheet master list
+    var url = 'https://docs.google.com/spreadsheets/d/'+SHEET_ID+'/gviz/tq?tqx=out:csv&sheet=Grocery';
+    var res = await fetch(url);
+    if(!res.ok) throw new Error('No Grocery sheet');
+    var rows = parseCSV(await res.text());
+    groceryItems = rows
+      .filter(function(r){ return r.name && r.name !== 'name'; })
+      .map(function(r){ return {name:r.name, store:r.store||'tj', qty:0, checked:false}; });
+    if(!groceryItems.length) throw new Error('Empty');
+    setSyncStatus('ok','✅ '+groceryItems.length+' items loaded — set quantities and save');
+  }catch(e){
+    // Fall back to hardcoded master list
+    groceryItems = [
+      {name:'Milk',store:'tj',qty:0,checked:false},{name:'Eggs',store:'co',qty:0,checked:false},
+      {name:'Bread',store:'tj',qty:0,checked:false},{name:'Butter',store:'co',qty:0,checked:false},
+      {name:'Chicken',store:'co',qty:0,checked:false},{name:'Pasta',store:'tj',qty:0,checked:false},
+      {name:'Marinara sauce',store:'tj',qty:0,checked:false},{name:'Rice',store:'co',qty:0,checked:false},
+      {name:'Olive oil',store:'co',qty:0,checked:false},{name:'Cheese',store:'tj',qty:0,checked:false},
+      {name:'Yogurt',store:'tj',qty:0,checked:false},{name:'OJ',store:'tj',qty:0,checked:false},
+      {name:'Apple juice boxes',store:'co',qty:0,checked:false},{name:'Carrots',store:'tj',qty:0,checked:false},
+      {name:'Broccoli',store:'tj',qty:0,checked:false},{name:'Bananas',store:'tj',qty:0,checked:false},
+      {name:'Apples',store:'tj',qty:0,checked:false},{name:'Cereal',store:'co',qty:0,checked:false},
+      {name:'Granola bars',store:'co',qty:0,checked:false},{name:'Peanut butter',store:'co',qty:0,checked:false},
+      {name:'Mac & cheese',store:'tj',qty:0,checked:false},{name:'Frozen pizza',store:'co',qty:0,checked:false},
+      {name:'Paper towels',store:'co',qty:0,checked:false},{name:'Dish soap',store:'co',qty:0,checked:false},
+    ];
+    setSyncStatus('ok','✅ '+groceryItems.length+' items — set quantities and save');
+  }
+  renderGroceryList();
+}
+
+function renderGroceryList(){
+  var list = document.getElementById('groceryList');
+  var filtered = gFilter==='all' ? groceryItems : groceryItems.filter(function(i){ return i.store===gFilter; });
+  // Sort: qty>0 first, then checked last
+  filtered.sort(function(a,b){
+    if(a.checked !== b.checked) return a.checked ? 1 : -1;
+    if((a.qty>0) !== (b.qty>0)) return a.qty>0 ? -1 : 1;
+    return 0;
+  });
+  if(!filtered.length){ list.innerHTML='<div class="empty-state">No items</div>'; return; }
+  list.innerHTML = '';
+  filtered.forEach(function(item){
+    var ri = groceryItems.indexOf(item);
+    var div = document.createElement('div');
+    div.className = 'grocery-item' + (item.checked?' checked':'');
+    var checkSvg = item.checked ? '<svg width="14" height="11" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>' : '';
+    var storeLabel = item.store==='tj' ? "Trader Joe's" : 'Costco';
+    var storeClass = item.store==='tj' ? 'g-store-tj' : 'g-store-co';
+    div.innerHTML =
+      '<div class="g-checkbox" onclick="toggleItem('+ri+')" style="background:'+(item.checked?'var(--teal)':'transparent')+'">'+checkSvg+'</div>'
+      +'<div class="g-info"><div class="g-name">'+item.name+(item.qty===0?'<span style="color:var(--muted);font-size:0.7rem;margin-left:4px">(not needed)</span>':'')+'</div><span class="g-store-badge '+storeClass+'">'+storeLabel+'</span></div>'
+      +'<div class="g-qty-ctrl">'
+        +'<button class="qty-btn qty-minus" onclick="changeQty('+ri+',-1)">−</button>'
+        +'<span class="qty-val" style="color:'+(item.qty===0?'var(--muted)':'var(--ink)')+'">'+item.qty+'</span>'
+        +'<button class="qty-btn qty-plus" onclick="changeQty('+ri+',1)">+</button>'
+      +'</div>';
+    list.appendChild(div);
+  });
+}
+
+function toggleItem(i){ groceryItems[i].checked=!groceryItems[i].checked; renderGroceryList(); }
+function changeQty(i,d){ groceryItems[i].qty=Math.max(0,groceryItems[i].qty+d); renderGroceryList(); }
+function setMobileStore(store,btn){
+  mNewStore=store;
+  document.getElementById('mpick-tj').className='store-pick-btn'+(store==='tj'?' tj-active':'');
+  document.getElementById('mpick-co').className='store-pick-btn'+(store==='co'?' co-active':'');
+}
+function addMobileGroceryItem(){
+  var name=document.getElementById('newItemName').value.trim(); if(!name) return;
+  groceryItems.unshift({name:name,store:mNewStore,qty:1,checked:false});
+  renderGroceryList();
+  document.getElementById('newItemName').value='';
+}
+function clearChecked(){
+  groceryItems.forEach(function(i){ if(i.checked){ i.checked=false; i.qty=0; } });
+  renderGroceryList();
+  setSyncStatus('ok','✅ Cleared — ready for next shop');
+}
+function filterGrocery(store,btn){
+  gFilter=store;
+  document.querySelectorAll('.store-chip').forEach(function(b){ b.className='store-chip'; });
+  btn.className='store-chip active-'+store;
+  renderGroceryList();
+}
+function setSyncStatus(type,msg){
+  var el=document.getElementById('grocerySyncStatus');
+  el.className='sync-status sync-'+type;
+  el.textContent=msg;
+}
+
+function parseCSV(csv){
+  var lines=csv.trim().split('\n'); if(lines.length<2) return [];
+  var headers=lines[0].replace(/"/g,'').split(',');
+  return lines.slice(1).map(function(line){
+    var vals=[],cur='',inQ=false;
+    for(var i=0;i<line.length;i++){
+      if(line[i]==='"'){inQ=!inQ;}
+      else if(line[i]===','&&!inQ){vals.push(cur);cur='';}
+      else{cur+=line[i];}
+    }
+    vals.push(cur);
+    var obj={};
+    headers.forEach(function(h,i){ obj[h.trim()]=(vals[i]||'').trim(); });
+    return obj;
+  });
+}
+
+// ── GOOGLE DRIVE ──────────────────────────────────────────────
+function connectDrive(){
+  var client = google.accounts.oauth2.initTokenClient({
+    client_id: PHOTOS_CLIENT_ID,
+    scope: 'https://www.googleapis.com/auth/drive.file',
+    callback: function(response){
+      if(response.error){
+        showDriveStatus('err','❌ '+response.error);
+        return;
+      }
+      driveToken = response.access_token;
+      document.getElementById('driveConnectStatus').textContent='● Drive Connected';
+      document.getElementById('driveConnectStatus').style.color='var(--teal)';
+      showDriveStatus('ok','✅ Connected to Google Drive!');
+      loadDriveMedia();
+    }
+  });
+  client.requestAccessToken();
+}
+
+function showDriveStatus(type,msg){
+  var el=document.getElementById('driveStatus');
+  el.style.display='block';
+  el.className='drive-status ds-'+type;
+  el.textContent=msg;
+}
+
+// ── MEDIA UPLOAD ──────────────────────────────────────────────
+var pendingFiles = [];
+
+function handleMediaSelect(input){
+  pendingFiles = Array.from(input.files);
+  var grid = document.getElementById('pendingMediaGrid');
+  grid.innerHTML = '';
+  pendingFiles.forEach(function(file, idx){
+    var wrap = document.createElement('div');
+    wrap.className = 'media-thumb-wrap';
+    if(file.type.startsWith('image/')){
+      var img = document.createElement('img');
+      img.className = 'media-thumb';
+      img.src = URL.createObjectURL(file);
+      wrap.appendChild(img);
+    } else {
+      var vid = document.createElement('video');
+      vid.className = 'media-thumb';
+      vid.src = URL.createObjectURL(file);
+      vid.muted = true;
+      wrap.appendChild(vid);
+    }
+    var del = document.createElement('button');
+    del.className = 'media-del';
+    del.textContent = '✕';
+    del.onclick = function(){ pendingFiles.splice(idx,1); handleMediaSelect({files:pendingFiles}); };
+    wrap.appendChild(del);
+    grid.appendChild(wrap);
+  });
+  document.getElementById('uploadBtn').style.display = pendingFiles.length ? 'flex' : 'none';
+}
+
+async function uploadToDrive(){
+  if(!driveToken){ alert('Connect Google Drive first!'); return; }
+  if(!pendingFiles.length) return;
+  var btn = document.getElementById('uploadBtn');
+  btn.disabled = true;
+  document.getElementById('uploadProgress').style.display = 'block';
+
+  for(var i=0; i<pendingFiles.length; i++){
+    var file = pendingFiles[i];
+    var pct = Math.round((i/pendingFiles.length)*100);
+    document.getElementById('progressBar').style.width = pct+'%';
+    document.getElementById('uploadProgressText').textContent = 'Uploading '+(i+1)+' of '+pendingFiles.length+'…';
+
+    try{
+      // Upload to Google Drive folder
+      var metadata = {
+        name: file.name || ('family_'+Date.now()),
+        parents: [DRIVE_FOLDER_ID]
+      };
+      var form = new FormData();
+      form.append('metadata', new Blob([JSON.stringify(metadata)], {type:'application/json'}));
+      form.append('file', file);
+
+      var res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+        method:'POST',
+        headers:{ Authorization:'Bearer '+driveToken },
+        body: form
+      });
+      var data = await res.json();
+      if(data.error) throw new Error(data.error.message);
+
+      // Make file publicly readable
+      await fetch('https://www.googleapis.com/drive/v3/files/'+data.id+'/permissions', {
+        method:'POST',
+        headers:{ Authorization:'Bearer '+driveToken, 'Content-Type':'application/json' },
+        body: JSON.stringify({role:'reader', type:'anyone'})
+      });
+
+    }catch(e){
+      console.error('Upload error:', e);
+    }
+  }
+
+  document.getElementById('progressBar').style.width = '100%';
+  document.getElementById('uploadProgressText').textContent = '✅ All uploaded!';
+  pendingFiles = [];
+  document.getElementById('pendingMediaGrid').innerHTML = '';
+  btn.style.display = 'none';
+  btn.disabled = false;
+  setTimeout(function(){ document.getElementById('uploadProgress').style.display='none'; },2000);
+  loadDriveMedia();
+}
+
+async function loadDriveMedia(){
+  if(!driveToken) return;
+  var statusEl = document.getElementById('driveMediaStatus');
+  statusEl.textContent = '⏳ Loading…';
+  try{
+    var res = await fetch(
+      "https://www.googleapis.com/drive/v3/files?q='"+DRIVE_FOLDER_ID+"'+in+parents+and+trashed=false&fields=files(id,name,mimeType,thumbnailLink)&pageSize=50",
+      { headers:{ Authorization:'Bearer '+driveToken } }
+    );
+    var data = await res.json();
+    var files = data.files || [];
+    statusEl.textContent = files.length+' file'+(files.length!==1?'s':'')+' in Drive folder';
+    var grid = document.getElementById('driveMediaGrid');
+    grid.innerHTML = '';
+    files.forEach(function(file){
+      var wrap = document.createElement('div');
+      wrap.className = 'media-thumb-wrap';
+      if(file.mimeType && file.mimeType.startsWith('image/')){
+        var img = document.createElement('img');
+        img.className = 'media-thumb';
+        img.src = file.thumbnailLink || 'https://drive.google.com/thumbnail?id='+file.id;
+        wrap.appendChild(img);
+      } else {
+        var div = document.createElement('div');
+        div.className = 'media-thumb';
+        div.style.cssText='background:var(--ink);display:flex;align-items:center;justify-content:center;font-size:1.5rem;';
+        div.textContent='🎬';
+        wrap.appendChild(div);
+      }
+      grid.appendChild(wrap);
+    });
+    if(!files.length) grid.innerHTML='<div class="empty-state">No media yet — upload some!</div>';
+  }catch(e){
+    statusEl.textContent='⚠️ Could not load Drive files';
+  }
+}
+
+// ── INIT ──────────────────────────────────────────────────────
+loadSavedLists();
+cleanOldLists();
+</script>
+</body>
+</html>
