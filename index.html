@@ -403,9 +403,8 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--ink);}
       <span style="font-size:0.63rem;font-weight:900;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted)">📷 Screensaver Photos</span>
       <p style="font-size:0.68rem;color:var(--muted);margin:6px 0">Connect Google Photos to auto-load from your shared album:</p>
       <button class="btn btn-primary btn-sm btn-full" id="gPhotosConnectBtn" onclick="connectGooglePhotos()" style="margin-bottom:6px">🔗 Connect Google Photos</button>
-      <button class="btn btn-amber btn-sm btn-full" onclick="if(photosAccessToken){loadPictureFramesAlbum();}else{alert('Connect first!');}" style="margin-bottom:6px">📸 Load My Photos</button>
+      <button class="btn btn-amber btn-sm btn-full" onclick="if(photosAccessToken){loadPhotosFromAlbum();}else{alert('Connect first!');}" style="margin-bottom:6px">📸 Reload Photos</button>
       <div id="gPhotosStatus" style="font-size:0.7rem;font-weight:800;color:var(--muted);margin-bottom:8px"></div>
-      <div id="albumList" style="display:none;max-height:160px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;padding:6px"></div>
       <div style="border-top:1px dashed var(--border);margin:8px 0;padding-top:8px">
         <span style="font-size:0.63rem;font-weight:900;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted)">Or upload manually</span>
         <div class="st-row" style="margin-top:6px">
@@ -416,6 +415,24 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--ink);}
       </div>
     </div>
     <div class="settings-section">
+      <span style="font-size:0.63rem;font-weight:900;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted)">⏱ Screensaver Timer</span>
+      <div style="display:flex;align-items:center;gap:10px;margin-top:6px">
+        <span style="font-size:0.78rem;font-weight:700;color:var(--muted)">Activate after</span>
+        <select id="ssTimerSelect" class="text-input" style="width:90px;padding:6px 8px" onchange="saveSsTimer()">
+          <option value="1">1 min</option>
+          <option value="2">2 min</option>
+          <option value="3" selected>3 min</option>
+          <option value="5">5 min</option>
+          <option value="10">10 min</option>
+          <option value="15">15 min</option>
+          <option value="30">30 min</option>
+        </select>
+        <span style="font-size:0.78rem;font-weight:700;color:var(--muted)">of inactivity</span>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <button class="btn btn-ghost btn-sm btn-full" onclick="activateSS();closeSettings();" style="margin-bottom:6px">▶ Test Screensaver Now</button>
       <button class="btn btn-red btn-sm btn-full" onclick="resetAll()">🗑 Clear All Data</button>
     </div>
   </div>
@@ -862,6 +879,9 @@ function updatePinDots(){
 // ── SETTINGS ─────────────────────────────────────────────────
 function openSettings(){
   document.getElementById('settingsSheetId').value = SHEET_ID;
+  var savedTimer = localStorage.getItem('ssTimer')||'3';
+  var timerSel = document.getElementById('ssTimerSelect');
+  if(timerSel) timerSel.value = savedTimer;
   document.getElementById('settingsWebAppUrl').value = WEB_APP_URL;
   document.getElementById('settingsCalUrl').value = localStorage.getItem('calUrl')||'';
   document.getElementById('sparkThresholdInput').value = SPARK_THRESHOLD;
@@ -895,7 +915,14 @@ updateClock(); setInterval(updateClock,30000);
 // ── SCREENSAVER ───────────────────────────────────────────────
 var idleTimer,ssInterval,ssIdx=0,photos=[];
 try{photos=JSON.parse(localStorage.getItem('ss-photos')||'[]');}catch(e){}
-function resetIdle(){ clearTimeout(idleTimer); idleTimer=setTimeout(activateSS,3*60*1000); }
+var SS_DELAY = parseInt(localStorage.getItem('ssTimer')||'3') * 60 * 1000;
+function resetIdle(){ clearTimeout(idleTimer); idleTimer=setTimeout(activateSS, SS_DELAY); }
+function saveSsTimer(){
+  var val = document.getElementById('ssTimerSelect').value;
+  localStorage.setItem('ssTimer', val);
+  SS_DELAY = parseInt(val) * 60 * 1000;
+  resetIdle();
+}
 ['mousemove','touchstart','keydown','click'].forEach(function(e){ document.addEventListener(e,resetIdle); });
 resetIdle();
 function activateSS(){ document.getElementById('screensaver').classList.add('active'); if(photos.length){showNextPhoto();ssInterval=setInterval(showNextPhoto,7000);} }
@@ -1513,52 +1540,6 @@ function connectGooglePhotos(){
   client.requestAccessToken();
 }
 
-function loadAlbums(){
-  var albumListEl = document.getElementById('albumList');
-  albumListEl.style.display='block';
-  albumListEl.innerHTML='<div style="font-size:0.75rem;color:var(--muted);padding:8px">Loading albums…</div>';
-  var all = [];
-
-  function renderAlbums(){
-    albumListEl.innerHTML='';
-    if(!all.length){
-      albumListEl.innerHTML='<div style="font-size:0.75rem;color:var(--muted);padding:8px">No albums found. Make sure the album is shared with emmabellauribe@gmail.com</div>';
-      return;
-    }
-    all.forEach(function(album){
-      var btn=document.createElement('button');
-      btn.style.cssText='width:100%;text-align:left;background:'+(album.id===selectedAlbumId?'var(--blue-l)':'transparent')+';border:none;border-bottom:1px solid var(--border);padding:8px 6px;cursor:pointer;font-family:Nunito,sans-serif;font-size:0.78rem;font-weight:700;color:var(--ink);';
-      btn.innerHTML='📸 '+(album.title||'Untitled')+' <span style="color:var(--muted);font-size:0.65rem">'+(album.mediaItemsCount?'('+album.mediaItemsCount+' photos)':'(shared)')+'</span>';
-      btn.onclick=function(){
-        selectedAlbumId=album.id;
-        localStorage.setItem('photosAlbumId',album.id);
-        document.getElementById('gPhotosStatus').textContent='✅ Album selected: '+(album.title||'Untitled');
-        loadPhotosFromAlbum(album.id);
-        albumListEl.querySelectorAll('button').forEach(function(b){b.style.background='transparent';});
-        btn.style.background='var(--blue-l)';
-      };
-      albumListEl.appendChild(btn);
-    });
-  }
-
-  // Fetch owned albums
-  fetch('https://photoslibrary.googleapis.com/v1/albums?pageSize=50',{headers:{Authorization:'Bearer '+photosAccessToken}})
-  .then(function(r){return r.json();})
-  .then(function(d){
-    all=all.concat(d.albums||[]);
-    // Fetch shared albums
-    return fetch('https://photoslibrary.googleapis.com/v1/sharedAlbums?pageSize=50',{headers:{Authorization:'Bearer '+photosAccessToken}});
-  })
-  .then(function(r){return r.json();})
-  .then(function(d){
-    all=all.concat(d.sharedAlbums||[]);
-    renderAlbums();
-  })
-  .catch(function(e){
-    document.getElementById('gPhotosStatus').textContent='⚠️ Error: '+e.toString();
-    albumListEl.innerHTML='<div style="font-size:0.75rem;color:var(--red);padding:8px">'+e.toString()+'</div>';
-  });
-}
 
 function loadPhotosFromAlbum(){
   if(!photosAccessToken) return;
