@@ -1,28 +1,31 @@
 <svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-  <rect width="512" height="512" rx="120" fill="#F4F4F4"/>
+  <!-- Background -->
+  <rect width="512" height="512" rx="120" fill="#FFFFFF"/>
 
-  <!-- Parents (abstract roof/arms) -->
-  <path d="M140 240 Q256 120 372 240" stroke="#FF8A80" stroke-width="24" fill="none" stroke-linecap="round"/>
-  <path d="M140 240 Q256 120 372 240" stroke="#4DB6AC" stroke-width="24" fill="none" stroke-linecap="round" stroke-dasharray="0 999"/>
+  <!-- Left parent -->
+  <path d="M150 260 Q200 160 256 220 Q220 300 256 340 Q200 360 150 260 Z" fill="#5CB8A6"/>
+
+  <!-- Right parent -->
+  <path d="M362 260 Q312 160 256 220 Q292 300 256 340 Q312 360 362 260 Z" fill="#F28C8C"/>
 
   <!-- Heart -->
   <path d="M256 150 
-           C240 120, 190 120, 190 160 
-           C190 200, 256 240, 256 240 
-           C256 240, 322 200, 322 160 
-           C322 120, 272 120, 256 150 Z" 
-        fill="#FF6F61"/>
+           C240 130, 210 130, 210 160 
+           C210 190, 256 220, 256 220 
+           C256 220, 302 190, 302 160 
+           C302 130, 272 130, 256 150 Z" 
+        fill="#F26D5B"/>
 
   <!-- Children -->
-  <circle cx="210" cy="300" r="40" fill="#9575CD"/>
-  <circle cx="300" cy="300" r="40" fill="#FFB74D"/>
+  <circle cx="210" cy="320" r="36" fill="#9B7BC4"/>
+  <circle cx="300" cy="320" r="36" fill="#F4B04E"/>
 
-  <!-- Bottom arc (support) -->
-  <path d="M150 350 Q256 420 362 350" stroke="#2F3B52" stroke-width="28" fill="none" stroke-linecap="round"/>
+  <!-- Bottom arc -->
+  <path d="M160 360 Q256 430 352 360" stroke="#2F3B52" stroke-width="26" fill="none" stroke-linecap="round"/>
 
-  <!-- Minimal house window -->
-  <rect x="236" y="250" width="16" height="16" fill="#2F3B52"/>
-  <rect x="260" y="250" width="16" height="16" fill="#2F3B52"/>
-  <rect x="236" y="274" width="16" height="16" fill="#2F3B52"/>
-  <rect x="260" y="274" width="16" height="16" fill="#2F3B52"/>
+  <!-- Window -->
+  <rect x="236" y="250" width="12" height="12" fill="#2F3B52"/>
+  <rect x="264" y="250" width="12" height="12" fill="#2F3B52"/>
+  <rect x="236" y="278" width="12" height="12" fill="#2F3B52"/>
+  <rect x="264" y="278" width="12" height="12" fill="#2F3B52"/>
 </svg>
