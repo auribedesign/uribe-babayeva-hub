@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Uribe-Babayeva Hub</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Fredoka+One&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -400,10 +401,17 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--ink);}
     </div>
     <div class="settings-section">
       <span style="font-size:0.63rem;font-weight:900;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted)">📷 Screensaver Photos</span>
-      <div class="st-row" style="margin-top:6px">
-        <button class="btn btn-success btn-sm" onclick="document.getElementById('ss-file-input').click()">Upload</button>
-        <span id="photoCount" style="font-size:0.7rem;color:var(--muted);font-weight:800">0 photos</span>
-        <button class="btn btn-ghost btn-sm" onclick="clearPhotos()">Clear</button>
+      <p style="font-size:0.68rem;color:var(--muted);margin:6px 0">Connect Google Photos to auto-load from your shared album:</p>
+      <button class="btn btn-primary btn-sm btn-full" id="gPhotosConnectBtn" onclick="connectGooglePhotos()" style="margin-bottom:6px">🔗 Connect Google Photos</button>
+      <div id="gPhotosStatus" style="font-size:0.7rem;font-weight:800;color:var(--muted);margin-bottom:8px"></div>
+      <div id="albumList" style="display:none;max-height:160px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;padding:6px"></div>
+      <div style="border-top:1px dashed var(--border);margin:8px 0;padding-top:8px">
+        <span style="font-size:0.63rem;font-weight:900;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted)">Or upload manually</span>
+        <div class="st-row" style="margin-top:6px">
+          <button class="btn btn-success btn-sm" onclick="document.getElementById('ss-file-input').click()">Upload</button>
+          <span id="photoCount" style="font-size:0.7rem;color:var(--muted);font-weight:800">0 photos</span>
+          <button class="btn btn-ghost btn-sm" onclick="clearPhotos()">Clear</button>
+        </div>
       </div>
     </div>
     <div class="settings-section">
@@ -678,7 +686,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--ink);}
   </div>
 
   <!-- MEALS -->
-  <div class="content" id="view-meals">
+  <div class="content" id="view-meals" style="grid-template-columns:repeat(7,1fr);grid-template-rows:30px 1fr 1fr 1fr;gap:8px;">
     <div class="meals-hdr">
       <h2>🍽 Weekly Meal Plan</h2>
       <button class="btn btn-primary btn-sm" id="suggestBtn" onclick="suggestMeals()">✨ AI Suggest</button>
@@ -802,6 +810,9 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--ink);}
 <script>
 // ── HARDCODED DEFAULTS ────────────────────────────────────────
 var SHEET_ID = localStorage.getItem('sheetId') || '1kbW4EcYvt6gu-st1tWY4G9QpCa3KvGPq2EtCWxeur1M';
+var PHOTOS_CLIENT_ID = '801480570402-brbo6se67g4g8kbckijlbbmffkb13u2s.apps.googleusercontent.com';
+var photosAccessToken = localStorage.getItem('photosToken') || '';
+var selectedAlbumId = localStorage.getItem('photosAlbumId') || '';
 var WEB_APP_URL = localStorage.getItem('webAppUrl') || 'https://script.google.com/macros/s/AKfycbxnRDiwIZsuM0luD_L5syB1YxP7UVrK2rR7t81reuMD0Z8pLui6FeO6Ne4haY76YDXt/exec';
 var USER_PIN = localStorage.getItem('userPin') || '1234';
 var SPARK_THRESHOLD = parseInt(localStorage.getItem('sparkThreshold') || '10');
@@ -1485,9 +1496,98 @@ async function loadWeather(){
   }catch(e){document.getElementById('weatherPill').textContent='🌡 SI';}
 }
 
+// ── GOOGLE PHOTOS ────────────────────────────────────────────
+function connectGooglePhotos(){
+  var client = google.accounts.oauth2.initTokenClient({
+    client_id: PHOTOS_CLIENT_ID,
+    scope: 'https://www.googleapis.com/auth/photoslibrary.readonly',
+    callback: function(response){
+      if(response.error){ document.getElementById('gPhotosStatus').textContent='❌ '+response.error; return; }
+      photosAccessToken = response.access_token;
+      localStorage.setItem('photosToken', photosAccessToken);
+      document.getElementById('gPhotosStatus').textContent='✅ Connected! Loading albums…';
+      loadAlbums();
+    }
+  });
+  client.requestAccessToken();
+}
+
+function loadAlbums(){
+  fetch('https://photoslibrary.googleapis.com/v1/albums?pageSize=50', {
+    headers:{ Authorization: 'Bearer '+photosAccessToken }
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(data){
+    var albumListEl = document.getElementById('albumList');
+    albumListEl.style.display='block';
+    albumListEl.innerHTML='';
+    var albums = data.albums || [];
+    // Also check shared albums
+    fetch('https://photoslibrary.googleapis.com/v1/sharedAlbums?pageSize=50', {
+      headers:{ Authorization: 'Bearer '+photosAccessToken }
+    })
+    .then(function(r2){ return r2.json(); })
+    .then(function(data2){
+      var shared = data2.sharedAlbums || [];
+      var all = albums.concat(shared);
+      if(!all.length){ albumListEl.innerHTML='<div style="font-size:0.75rem;color:var(--muted);padding:8px">No albums found</div>'; return; }
+      all.forEach(function(album){
+        var btn = document.createElement('button');
+        btn.style.cssText='width:100%;text-align:left;background:'+(album.id===selectedAlbumId?'var(--blue-l)':'transparent')+';border:none;border-bottom:1px solid var(--border);padding:8px 6px;cursor:pointer;font-family:Nunito,sans-serif;font-size:0.78rem;font-weight:700;color:var(--ink);border-radius:0;';
+        btn.innerHTML='📸 '+album.title+' <span style="color:var(--muted);font-size:0.65rem">('+( album.mediaItemsCount||'?')+' photos)</span>';
+        btn.onclick = function(){
+          selectedAlbumId = album.id;
+          localStorage.setItem('photosAlbumId', album.id);
+          document.getElementById('gPhotosStatus').textContent='✅ Album selected: '+album.title;
+          loadPhotosFromAlbum(album.id);
+          document.getElementById('albumList').querySelectorAll('button').forEach(function(b){ b.style.background='transparent'; });
+          btn.style.background='var(--blue-l)';
+        };
+        albumListEl.appendChild(btn);
+      });
+    });
+  })
+  .catch(function(e){
+    document.getElementById('gPhotosStatus').textContent='⚠️ Could not load albums. Try reconnecting.';
+    photosAccessToken=''; localStorage.removeItem('photosToken');
+  });
+}
+
+function loadPhotosFromAlbum(albumId){
+  if(!photosAccessToken||!albumId) return;
+  document.getElementById('gPhotosStatus').textContent='⏳ Loading photos…';
+  fetch('https://photoslibrary.googleapis.com/v1/mediaItems:search', {
+    method:'POST',
+    headers:{ Authorization:'Bearer '+photosAccessToken, 'Content-Type':'application/json' },
+    body: JSON.stringify({ albumId:albumId, pageSize:50 })
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(data){
+    var items = data.mediaItems || [];
+    // Filter to photos only and get display URLs
+    photos = items
+      .filter(function(item){ return item.mimeType && item.mimeType.startsWith('image/'); })
+      .map(function(item){ return item.baseUrl+'=w1920-h1080'; });
+    try{ localStorage.setItem('ss-photos', JSON.stringify(photos)); }catch(e){}
+    updatePhotoCount();
+    document.getElementById('gPhotosStatus').textContent='✅ '+photos.length+' photos loaded!';
+  })
+  .catch(function(e){
+    document.getElementById('gPhotosStatus').textContent='⚠️ Could not load photos.';
+  });
+}
+
+// Auto-reload photos on open if token exists
+function tryAutoLoadPhotos(){
+  if(photosAccessToken && selectedAlbumId){
+    loadPhotosFromAlbum(selectedAlbumId);
+  }
+}
+
 // ── INIT ──────────────────────────────────────────────────────
 buildMeals();
 loadWeather();
+tryAutoLoadPhotos();
 renderStickyNotes();
 renderYelling();
 renderGrocery();
