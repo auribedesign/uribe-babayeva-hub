@@ -1500,7 +1500,7 @@ async function loadWeather(){
 function connectGooglePhotos(){
   var client = google.accounts.oauth2.initTokenClient({
     client_id: PHOTOS_CLIENT_ID,
-    scope: 'https://www.googleapis.com/auth/photoslibrary.readonly',
+    scope: 'https://www.googleapis.com/auth/photoslibrary.readonly https://www.googleapis.com/auth/photoslibrary.sharing',
     callback: function(response){
       if(response.error){ document.getElementById('gPhotosStatus').textContent='❌ '+response.error; return; }
       photosAccessToken = response.access_token;
@@ -1513,43 +1513,49 @@ function connectGooglePhotos(){
 }
 
 function loadAlbums(){
-  fetch('https://photoslibrary.googleapis.com/v1/albums?pageSize=50', {
-    headers:{ Authorization: 'Bearer '+photosAccessToken }
-  })
-  .then(function(r){ return r.json(); })
-  .then(function(data){
-    var albumListEl = document.getElementById('albumList');
-    albumListEl.style.display='block';
+  var albumListEl = document.getElementById('albumList');
+  albumListEl.style.display='block';
+  albumListEl.innerHTML='<div style="font-size:0.75rem;color:var(--muted);padding:8px">Loading albums…</div>';
+  var all = [];
+
+  function renderAlbums(){
     albumListEl.innerHTML='';
-    var albums = data.albums || [];
-    // Also check shared albums
-    fetch('https://photoslibrary.googleapis.com/v1/sharedAlbums?pageSize=50', {
-      headers:{ Authorization: 'Bearer '+photosAccessToken }
-    })
-    .then(function(r2){ return r2.json(); })
-    .then(function(data2){
-      var shared = data2.sharedAlbums || [];
-      var all = albums.concat(shared);
-      if(!all.length){ albumListEl.innerHTML='<div style="font-size:0.75rem;color:var(--muted);padding:8px">No albums found</div>'; return; }
-      all.forEach(function(album){
-        var btn = document.createElement('button');
-        btn.style.cssText='width:100%;text-align:left;background:'+(album.id===selectedAlbumId?'var(--blue-l)':'transparent')+';border:none;border-bottom:1px solid var(--border);padding:8px 6px;cursor:pointer;font-family:Nunito,sans-serif;font-size:0.78rem;font-weight:700;color:var(--ink);border-radius:0;';
-        btn.innerHTML='📸 '+album.title+' <span style="color:var(--muted);font-size:0.65rem">('+( album.mediaItemsCount||'?')+' photos)</span>';
-        btn.onclick = function(){
-          selectedAlbumId = album.id;
-          localStorage.setItem('photosAlbumId', album.id);
-          document.getElementById('gPhotosStatus').textContent='✅ Album selected: '+album.title;
-          loadPhotosFromAlbum(album.id);
-          document.getElementById('albumList').querySelectorAll('button').forEach(function(b){ b.style.background='transparent'; });
-          btn.style.background='var(--blue-l)';
-        };
-        albumListEl.appendChild(btn);
-      });
+    if(!all.length){
+      albumListEl.innerHTML='<div style="font-size:0.75rem;color:var(--muted);padding:8px">No albums found. Make sure the album is shared with emmabellauribe@gmail.com</div>';
+      return;
+    }
+    all.forEach(function(album){
+      var btn=document.createElement('button');
+      btn.style.cssText='width:100%;text-align:left;background:'+(album.id===selectedAlbumId?'var(--blue-l)':'transparent')+';border:none;border-bottom:1px solid var(--border);padding:8px 6px;cursor:pointer;font-family:Nunito,sans-serif;font-size:0.78rem;font-weight:700;color:var(--ink);';
+      btn.innerHTML='📸 '+(album.title||'Untitled')+' <span style="color:var(--muted);font-size:0.65rem">'+(album.mediaItemsCount?'('+album.mediaItemsCount+' photos)':'(shared)')+'</span>';
+      btn.onclick=function(){
+        selectedAlbumId=album.id;
+        localStorage.setItem('photosAlbumId',album.id);
+        document.getElementById('gPhotosStatus').textContent='✅ Album selected: '+(album.title||'Untitled');
+        loadPhotosFromAlbum(album.id);
+        albumListEl.querySelectorAll('button').forEach(function(b){b.style.background='transparent';});
+        btn.style.background='var(--blue-l)';
+      };
+      albumListEl.appendChild(btn);
     });
+  }
+
+  // Fetch owned albums
+  fetch('https://photoslibrary.googleapis.com/v1/albums?pageSize=50',{headers:{Authorization:'Bearer '+photosAccessToken}})
+  .then(function(r){return r.json();})
+  .then(function(d){
+    all=all.concat(d.albums||[]);
+    // Fetch shared albums
+    return fetch('https://photoslibrary.googleapis.com/v1/sharedAlbums?pageSize=50',{headers:{Authorization:'Bearer '+photosAccessToken}});
+  })
+  .then(function(r){return r.json();})
+  .then(function(d){
+    all=all.concat(d.sharedAlbums||[]);
+    renderAlbums();
   })
   .catch(function(e){
-    document.getElementById('gPhotosStatus').textContent='⚠️ Could not load albums. Try reconnecting.';
-    photosAccessToken=''; localStorage.removeItem('photosToken');
+    document.getElementById('gPhotosStatus').textContent='⚠️ Error: '+e.toString();
+    albumListEl.innerHTML='<div style="font-size:0.75rem;color:var(--red);padding:8px">'+e.toString()+'</div>';
   });
 }
 
