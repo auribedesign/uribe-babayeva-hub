@@ -436,6 +436,28 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--ink);}
         </select>
         <span style="font-size:0.78rem;font-weight:700;color:var(--muted)">of inactivity</span>
       </div>
+      <div style="display:flex;align-items:center;gap:10px;margin-top:10px">
+        <span style="font-size:0.78rem;font-weight:700;color:var(--muted)">Slide every</span>
+        <select id="slideDurSelect" class="text-input" style="width:90px;padding:6px 8px" onchange="saveSlideDur()">
+          <option value="3">3 sec</option>
+          <option value="5">5 sec</option>
+          <option value="7" selected>7 sec</option>
+          <option value="10">10 sec</option>
+          <option value="15">15 sec</option>
+          <option value="20">20 sec</option>
+          <option value="30">30 sec</option>
+        </select>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;margin-top:10px">
+        <span style="font-size:0.78rem;font-weight:700;color:var(--muted)">Transition</span>
+        <select id="ssTransitionSelect" class="text-input" style="width:130px;padding:6px 8px" onchange="saveTransition()">
+          <option value="fade" selected>✨ Fade</option>
+          <option value="slide">➡️ Slide</option>
+          <option value="zoom">🔍 Zoom In</option>
+          <option value="blur">🌫 Blur</option>
+          <option value="flip">🔄 Flip</option>
+        </select>
+      </div>
     </div>
 
     <div class="settings-section">
@@ -890,6 +912,10 @@ function openSettings(){
   var savedTimer = localStorage.getItem('ssTimer')||'3';
   var timerSel = document.getElementById('ssTimerSelect');
   if(timerSel) timerSel.value = savedTimer;
+  var slideSel = document.getElementById('slideDurSelect');
+  if(slideSel) slideSel.value = localStorage.getItem('slideDur')||'7';
+  var transSel = document.getElementById('ssTransitionSelect');
+  if(transSel) transSel.value = localStorage.getItem('ssTransition')||'fade';
   document.getElementById('settingsWebAppUrl').value = WEB_APP_URL;
   document.getElementById('settingsCalUrl').value = localStorage.getItem('calUrl')||'';
   document.getElementById('sparkThresholdInput').value = SPARK_THRESHOLD;
@@ -924,6 +950,8 @@ updateClock(); setInterval(updateClock,30000);
 var idleTimer,ssInterval,ssIdx=0,photos=[];
 try{photos=JSON.parse(localStorage.getItem('ss-photos')||'[]');}catch(e){}
 var SS_DELAY = parseInt(localStorage.getItem('ssTimer')||'3') * 60 * 1000;
+var SLIDE_DUR = parseInt(localStorage.getItem('slideDur')||'7') * 1000;
+var SS_TRANSITION = localStorage.getItem('ssTransition')||'fade';
 function resetIdle(){ clearTimeout(idleTimer); idleTimer=setTimeout(activateSS, SS_DELAY); }
 function saveSsTimer(){
   var val = document.getElementById('ssTimerSelect').value;
@@ -931,13 +959,70 @@ function saveSsTimer(){
   SS_DELAY = parseInt(val) * 60 * 1000;
   resetIdle();
 }
+function saveSlideDur(){
+  var val = document.getElementById('slideDurSelect').value;
+  localStorage.setItem('slideDur', val);
+  SLIDE_DUR = parseInt(val) * 1000;
+}
+function saveTransition(){
+  var val = document.getElementById('ssTransitionSelect').value;
+  localStorage.setItem('ssTransition', val);
+  SS_TRANSITION = val;
+}
 ['mousemove','touchstart','keydown','click'].forEach(function(e){ document.addEventListener(e,resetIdle); });
 resetIdle();
 function activateSS(){
   document.getElementById('screensaver').classList.add('active');
-  if(photosAccessToken){ loadDriveMediaForScreensaver().then(function(){ if(photos.length){showNextPhoto();ssInterval=setInterval(showNextPhoto,7000);} }); }
-  else if(photos.length){ showNextPhoto(); ssInterval=setInterval(showNextPhoto,7000); }
+  if(photosAccessToken){ loadDriveMediaForScreensaver().then(function(){ if(photos.length){showNextPhoto();ssInterval=setInterval(showNextPhoto,SLIDE_DUR);} }); }
+  else if(photos.length){ showNextPhoto(); ssInterval=setInterval(showNextPhoto,SLIDE_DUR); }
 }
+function applyTransition(img, src){
+  var t = SS_TRANSITION;
+  // Reset
+  img.style.transition = '';
+  img.style.transform = '';
+  img.style.filter = '';
+  img.style.opacity = '0';
+
+  if(t === 'fade'){
+    img.src = src;
+    img.style.transition = 'opacity 1.2s ease';
+    setTimeout(function(){ img.style.opacity='1'; }, 50);
+
+  } else if(t === 'slide'){
+    img.style.transform = 'translateX(100%)';
+    img.src = src;
+    img.style.opacity = '1';
+    img.style.transition = 'transform 0.8s cubic-bezier(0.25,0.46,0.45,0.94)';
+    setTimeout(function(){ img.style.transform='translateX(0)'; }, 50);
+
+  } else if(t === 'zoom'){
+    img.src = src;
+    img.style.transform = 'scale(1.15)';
+    img.style.opacity = '1';
+    img.style.transition = 'transform '+Math.round(SLIDE_DUR/1000)+'s ease-out, opacity 0.6s ease';
+    setTimeout(function(){ img.style.opacity='1'; img.style.transform='scale(1)'; }, 50);
+
+  } else if(t === 'blur'){
+    img.src = src;
+    img.style.filter = 'blur(20px)';
+    img.style.opacity = '1';
+    img.style.transition = 'filter 1s ease, opacity 0.5s ease';
+    setTimeout(function(){ img.style.filter='blur(0px)'; }, 50);
+
+  } else if(t === 'flip'){
+    img.style.transition = 'transform 0.4s ease';
+    img.style.transform = 'rotateY(90deg)';
+    img.style.opacity = '1';
+    setTimeout(function(){
+      img.src = src;
+      img.style.transform = 'rotateY(-90deg)';
+      img.style.transition = 'transform 0.4s ease';
+      setTimeout(function(){ img.style.transform='rotateY(0deg)'; }, 50);
+    }, 400);
+  }
+}
+
 function showNextPhoto(){
   if(!photos.length) return;
   var idx2 = ssIdx % photos.length;
@@ -946,7 +1031,7 @@ function showNextPhoto(){
   ssIdx++;
   var isVideo = mediaItem && mediaItem.type === 'video';
   if(isVideo){
-    var img = document.getElementById('ss-photo'); img.classList.remove('visible');
+    var img = document.getElementById('ss-photo'); img.style.opacity='0';
     var vid = document.getElementById('ss-video');
     if(!vid){
       vid = document.createElement('video'); vid.id='ss-video';
@@ -956,11 +1041,12 @@ function showNextPhoto(){
     }
     vid.style.opacity='0'; vid.src=src; vid.play().catch(function(){});
     setTimeout(function(){ vid.style.opacity='1'; },100);
-    clearInterval(ssInterval); ssInterval=setTimeout(function(){ vid.style.opacity='0'; showNextPhoto(); setInterval(showNextPhoto,7000); },30000);
+    clearInterval(ssInterval);
+    ssInterval=setTimeout(function(){ vid.style.opacity='0'; showNextPhoto(); ssInterval=setInterval(showNextPhoto,SLIDE_DUR); },30000);
   } else {
     var vid2=document.getElementById('ss-video'); if(vid2) vid2.style.opacity='0';
-    var img2=document.getElementById('ss-photo'); img2.classList.remove('visible');
-    setTimeout(function(){ img2.src=src; img2.classList.add('visible'); },600);
+    var img2=document.getElementById('ss-photo');
+    applyTransition(img2, src);
   }
 }
 function wakeUp(e){ if(e.target.id==='ss-upload-btn'||e.target.id==='ss-file-input')return; document.getElementById('screensaver').classList.remove('active'); clearInterval(ssInterval); resetIdle(); }
@@ -1244,8 +1330,9 @@ function renderGrocery(){
   filtered.forEach(function(item){
     var ri=groceryItems.indexOf(item);
     var isTJ=item.store==='tj';
+    var isZero = item.qty === 0;
     var row=document.createElement('div');
-    row.style.cssText='display:grid;grid-template-columns:1fr 90px 120px 28px;gap:8px;padding:8px 4px;border-bottom:1px solid var(--border);align-items:center;opacity:'+(item.checked?'0.38':'1');
+    row.style.cssText='display:grid;grid-template-columns:1fr 90px 120px 28px;gap:8px;padding:8px 4px;border-bottom:1px solid var(--border);align-items:center;opacity:'+(item.checked?'0.38':isZero?'0.4':'1');
     var checkSvg=item.checked?'<svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>':'';
     row.innerHTML=
       '<div class="g-name"><div class="g-check-box" onclick="toggleGrocery('+ri+')" style="background:'+(item.checked?'var(--teal)':'transparent')+'">'+checkSvg+'</div>'
