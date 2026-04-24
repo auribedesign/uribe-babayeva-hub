@@ -613,8 +613,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--ink);}
             <button class="btn btn-primary btn-sm" onclick="openCalModal()">+ Event</button>
           </div>
         </div>
-        <div class="week-grid" id="weekGrid"></div>
-        <div id="cal-embed" style="margin-top:5px;border-radius:9px;overflow:hidden"></div>
+        <ul id="calEventsList" style="list-style:none;flex:1;overflow-y:auto"><li class="empty-hint">Syncing events…</li></ul>
       </div>
 
       <!-- Tally Summary -->
@@ -910,7 +909,7 @@ async function syncFromSheet(){
   setBanner('loading','⟳ Syncing…');
   document.getElementById('syncPill').textContent='⟳ Syncing…';
   try{
-    var cats=['Homework','Aftercare','Reminders'],data={};
+    var cats=['Homework','Aftercare','Reminders','Calendar'],data={};
     for(var i=0;i<cats.length;i++){
       var res=await fetch('https://docs.google.com/spreadsheets/d/'+SHEET_ID+'/gviz/tq?tqx=out:csv&sheet='+cats[i]);
       if(!res.ok) throw new Error('Tab not found');
@@ -931,6 +930,35 @@ async function syncFromSheet(){
     sL.querySelectorAll('[data-auto]').forEach(function(el){el.remove();});
     data['Reminders'].forEach(function(row){ if(!row.title||row.title==='title')return; var li=appendMini(sL,row.title,'School','var(--teal)'); li.setAttribute('data-auto','1'); });
     if(sL.children.length===0) sL.innerHTML='<li class="empty-hint">No school reminders</li>';
+
+    // Calendar events
+    var calList=document.getElementById('calEventsList');
+    if(calList && data['Calendar']){
+      calList.innerHTML='';
+      var calCount=0;
+      var today=new Date().toISOString().substring(0,10);
+      data['Calendar'].forEach(function(row){
+        if(!row.title||row.title==='title') return;
+        var who=(row.who||'').toLowerCase();
+        var color=who.indexOf('alvaro')!==-1?'var(--blue)':who.indexOf('zarifa')!==-1?'var(--pink)':who.indexOf('emma')!==-1?'var(--amber)':who.indexOf('school')!==-1||who.indexOf('hill')!==-1?'var(--teal)':'var(--purple)';
+        var light=who.indexOf('alvaro')!==-1?'var(--blue-l)':who.indexOf('zarifa')!==-1?'var(--pink-l)':who.indexOf('emma')!==-1?'var(--amber-l)':who.indexOf('school')!==-1||who.indexOf('hill')!==-1?'var(--teal-l)':'var(--purple-l)';
+        var dateStr=row.date||'';
+        var isToday=dateStr===today;
+        var isTomorrow=dateStr===(function(){var d=new Date();d.setDate(d.getDate()+1);return d.toISOString().substring(0,10);})();
+        var dateLabel=isToday?'Today':isTomorrow?'Tomorrow':(function(){if(!dateStr)return '';var d=new Date(dateStr+'T12:00:00');return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()]+' '+d.getDate();})();
+        var timeStr=row.time?row.time:'All day';
+        var li=document.createElement('li');
+        li.style.cssText='display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);';
+        li.innerHTML='<div style="width:4px;min-height:32px;border-radius:3px;background:'+color+';flex-shrink:0;align-self:stretch"></div>'
+          +'<div style="flex:1;min-width:0"><div style="font-size:0.82rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+row.title+'</div>'
+          +'<div style="font-size:0.65rem;color:var(--muted);margin-top:1px">'+dateLabel+(timeStr!=='All day'?' · '+timeStr:'')+'</div></div>'
+          +'<span style="font-size:0.6rem;font-weight:800;padding:2px 6px;border-radius:20px;background:'+light+';color:'+color+';flex-shrink:0;white-space:nowrap">'+row.who+'</span>';
+        calList.appendChild(li);
+        calCount++;
+      });
+      if(calCount===0) calList.innerHTML='<li class="empty-hint">No upcoming events</li>';
+    }
+
     document.getElementById('syncPill').textContent='⟳ Sync';
     updateSheetStatus();
   }catch(e){
@@ -982,26 +1010,7 @@ function appendHwItem(title,sub,dueClass,dueLabel,done){
 }
 function addSchoolNote(){ var i=document.getElementById('schoolNoteInput'),v=i.value.trim();if(!v)return;appendMini(document.getElementById('schoolNotesList'),v,'Manual','var(--teal)');i.value=''; }
 
-// ── CALENDAR ──────────────────────────────────────────────────
-function buildWeekGrid(){
-  var grid=document.getElementById('weekGrid');grid.innerHTML='';
-  var now=new Date(),todayIdx=now.getDay();
-  var DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  DAYS.forEach(function(day,i){
-    var col=document.createElement('div');col.className='week-col';
-    var hdr=document.createElement('div');hdr.className='week-day-hdr'+(i===todayIdx?' today-hdr':'');hdr.textContent=day;
-    var d=new Date(now);d.setDate(now.getDate()-todayIdx+i);
-    var num=document.createElement('div');num.className='week-num'+(i===todayIdx?' today-num':'');num.textContent=d.getDate();
-    var evs=document.createElement('div');evs.className='week-events';
-    var addBtn=document.createElement('button');addBtn.className='add-ev-btn';addBtn.textContent='+ add';
-    var dateStr=d.toISOString().substring(0,10);
-    addBtn.onclick=function(){openCalModalForDate(dateStr);};
-    evs.appendChild(addBtn);
-    col.appendChild(hdr);col.appendChild(num);col.appendChild(evs);
-    grid.appendChild(col);
-  });
-}
-function embedCal(url){ if(!url)url=localStorage.getItem('calUrl');if(!url)return;document.getElementById('cal-embed').innerHTML='<iframe src="'+url+'" frameborder="0" scrolling="no" style="width:100%;height:150px;border:none;display:block;border-radius:9px"></iframe>'; }
+// ── CALENDAR ──────────────────────────────────────────────────────────────────
 function openCalModal(){openCalModalForDate('');}
 function openCalModalForDate(date){
   document.getElementById('calEventTitle').value='';
@@ -1431,7 +1440,6 @@ async function loadWeather(){
 }
 
 // ── INIT ──────────────────────────────────────────────────────
-buildWeekGrid();embedCal();
 buildMeals();
 loadWeather();
 renderStickyNotes();
