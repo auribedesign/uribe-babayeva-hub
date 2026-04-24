@@ -1603,16 +1603,39 @@ async function loadDriveMediaForScreensaver(){
     driveMediaUrls = [];
     photos = [];
     // Use thumbnail links — publicly accessible, no auth needed for display
-    files.forEach(function(f){
-      if(!f.mimeType) return;
-      var isVideo = f.mimeType.startsWith('video/');
-      var isImage = f.mimeType.startsWith('image/');
-      if(!isImage && !isVideo) return;
-      // Google Drive thumbnail URL — works without auth in img tags
-      var thumbUrl = 'https://drive.google.com/thumbnail?id='+f.id+'&sz=w1920';
-      driveMediaUrls.push({ url: thumbUrl, type: isVideo ? 'video' : 'image', id: f.id });
-      photos.push(thumbUrl);
+    var imageFiles = files.filter(function(f){
+      return f.mimeType && (f.mimeType.startsWith('image/') || f.mimeType.startsWith('video/'));
     });
+    driveMediaUrls = [];
+    photos = [];
+    document.getElementById('gPhotosStatus').textContent = '⏳ Downloading '+imageFiles.length+' photos…';
+
+    // Fetch each file with auth token and convert to data URL so it works in Safari
+    for(var fi=0; fi<Math.min(imageFiles.length,20); fi++){
+      var f = imageFiles[fi];
+      try{
+        var r2 = await fetch('https://www.googleapis.com/drive/v3/files/'+f.id+'?alt=media',{
+          headers:{ Authorization:'Bearer '+photosAccessToken }
+        });
+        var blob = await r2.blob();
+        var dataUrl = await new Promise(function(resolve){
+          var reader = new FileReader();
+          reader.onload = function(e){ resolve(e.target.result); };
+          reader.readAsDataURL(blob);
+        });
+        var isVideo = f.mimeType.startsWith('video/');
+        driveMediaUrls.push({ url: dataUrl, type: isVideo ? 'video' : 'image', id: f.id });
+        photos.push(dataUrl);
+        document.getElementById('gPhotosStatus').textContent = '⏳ Loading photo '+(fi+1)+' of '+Math.min(imageFiles.length,20)+'…';
+      } catch(fe){ console.log('Failed file '+f.id, fe); }
+    }
+    // Save to localStorage so Safari can use them without re-auth
+    try{
+      localStorage.setItem('ss-photos', JSON.stringify(photos));
+      document.getElementById('gPhotosStatus').textContent = '✅ '+photos.length+' photos saved! Open in Safari now.';
+    } catch(se){
+      document.getElementById('gPhotosStatus').textContent = '✅ '+photos.length+' photos loaded! (Too large to cache — stay in Chrome)';
+    }
     // Also merge with any manually uploaded photos
     var localPhotos = [];
     try{ localPhotos = JSON.parse(localStorage.getItem('ss-photos')||'[]'); }catch(e){}
