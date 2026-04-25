@@ -1334,13 +1334,13 @@ function resetYelling(){yellData={papa:0,mama:0,emma:0};localStorage.setItem('ye
 
 // ── GROCERY ───────────────────────────────────────────────────
 var GROCERY_MASTER=[
-  {name:'Milk',store:'tj',qty:0},{name:'Eggs (dozen)',store:'co',qty:0},{name:'Bread',store:'tj',qty:0},{name:'Butter',store:'co',qty:0},
-  {name:'Chicken breasts',store:'co',qty:0},{name:'Ground beef',store:'co',qty:0},{name:'Pasta',store:'tj',qty:0},{name:'Marinara sauce',store:'tj',qty:0},
-  {name:'Rice',store:'co',qty:0},{name:'Olive oil',store:'co',qty:0},{name:'Cheddar cheese',store:'tj',qty:0},{name:'Yogurt',store:'tj',qty:0},
-  {name:'Orange juice',store:'tj',qty:0},{name:'Apple juice boxes',store:'co',qty:0},{name:'Baby carrots',store:'tj',qty:0},{name:'Broccoli',store:'tj',qty:0},
-  {name:'Bananas',store:'tj',qty:0},{name:'Apples',store:'tj',qty:0},{name:'Cereal',store:'co',qty:0},{name:'Granola bars',store:'co',qty:0},
-  {name:'Crackers',store:'co',qty:0},{name:'Peanut butter',store:'co',qty:0},{name:'Jelly',store:'tj',qty:0},{name:'Frozen pizza',store:'co',qty:0},
-  {name:'Fish sticks',store:'tj',qty:0},{name:'Mac & cheese',store:'tj',qty:0},{name:'Dish soap',store:'co',qty:0},{name:'Paper towels',store:'co',qty:0},
+  {name:'Milk',store:'tj',qty:0,notes:[]},{name:'Eggs (dozen)',store:'co',qty:0,notes:[]},{name:'Bread',store:'tj',qty:0,notes:[]},{name:'Butter',store:'co',qty:0,notes:[]},
+  {name:'Chicken breasts',store:'co',qty:0,notes:[]},{name:'Ground beef',store:'co',qty:0,notes:[]},{name:'Pasta',store:'tj',qty:0,notes:[]},{name:'Marinara sauce',store:'tj',qty:0,notes:[]},
+  {name:'Rice',store:'co',qty:0,notes:[]},{name:'Olive oil',store:'co',qty:0,notes:[]},{name:'Cheddar cheese',store:'tj',qty:0,notes:[]},{name:'Yogurt',store:'tj',qty:0,notes:[]},
+  {name:'Orange juice',store:'tj',qty:0,notes:[]},{name:'Apple juice boxes',store:'co',qty:0,notes:[]},{name:'Baby carrots',store:'tj',qty:0,notes:[]},{name:'Broccoli',store:'tj',qty:0,notes:[]},
+  {name:'Bananas',store:'tj',qty:0,notes:[]},{name:'Apples',store:'tj',qty:0,notes:[]},{name:'Cereal',store:'co',qty:0,notes:[]},{name:'Granola bars',store:'co',qty:0,notes:[]},
+  {name:'Crackers',store:'co',qty:0,notes:[]},{name:'Peanut butter',store:'co',qty:0,notes:[]},{name:'Jelly',store:'tj',qty:0,notes:[]},{name:'Frozen pizza',store:'co',qty:0,notes:[]},
+  {name:'Fish sticks',store:'tj',qty:0,notes:[]},{name:'Mac & cheese',store:'tj',qty:0,notes:[]},{name:'Dish soap',store:'co',qty:0,notes:[]},{name:'Paper towels',store:'co',qty:0,notes:[]},
 ];
 var groceryItems=[];
 function loadGroceryFromMobileOrMaster(){
@@ -1828,6 +1828,11 @@ var gTabFilter = 'all';
 var gTabStore = 'tj';
 
 function initGroceryTab(){
+  // Load persistent notes from localStorage into master list
+  try{
+    var saved = JSON.parse(localStorage.getItem('groceryMasterNotes')||'{}');
+    GROCERY_MASTER.forEach(function(item){ if(saved[item.name]) item.notes=saved[item.name]; });
+  }catch(e){}
   renderSavedLists();
   if(savedGroceryLists.length){
     loadGroceryList(savedGroceryLists.length-1);
@@ -1850,11 +1855,15 @@ function renderSavedLists(){
     var idx = savedGroceryLists.length - 1 - revIdx;
     var needed = list.items.filter(function(i){ return i.qty > 0; }).length;
     var checked = list.items.filter(function(i){ return i.checked; }).length;
+    var isStarred = list.starred || false;
     var div = document.createElement('div');
-    div.style.cssText = 'padding:10px;border-radius:12px;border:1.5px solid '+(activeGroceryList===idx?'var(--teal)':'var(--border)')+';margin-bottom:8px;cursor:pointer;background:'+(activeGroceryList===idx?'var(--teal-l)':'var(--card)')+';transition:all 0.15s';
+    div.style.cssText = 'padding:10px;border-radius:12px;border:2px solid '+(activeGroceryList===idx?'var(--teal)':isStarred?'var(--amber)':'var(--border)')+';margin-bottom:8px;background:'+(activeGroceryList===idx?'var(--teal-l)':isStarred?'var(--amber-l)':'var(--card)')+';transition:all 0.15s';
     div.innerHTML =
-      '<div style="font-size:0.8rem;font-weight:800;color:var(--ink)">📋 '+list.name+'</div>'
-      +'<div style="font-size:0.68rem;color:var(--muted);font-weight:700;margin-top:2px">'+needed+' items · '+checked+' checked</div>'
+      '<div style="display:flex;align-items:center;gap:6px">'
+        +'<span style="font-size:0.8rem;font-weight:800;color:var(--ink);flex:1">📋 '+list.name+'</span>'
+        +'<button onclick="toggleStarList('+idx+')" style="border:none;background:none;cursor:pointer;font-size:1.2rem;padding:0" title="Star this list">'+(isStarred?'⭐':'☆')+'</button>'
+      +'</div>'
+      +'<div style="font-size:0.68rem;color:var(--muted);font-weight:700;margin-top:3px">'+needed+' items · '+new Date(list.savedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+'</div>'
       +'<div style="display:flex;gap:6px;margin-top:8px">'
         +'<button class="btn btn-primary btn-sm" onclick="loadGroceryList('+idx+')" style="flex:1">Open</button>'
         +'<button class="btn btn-ghost btn-sm" onclick="deleteGroceryList('+idx+')" style="color:var(--red)">✕</button>'
@@ -1881,7 +1890,10 @@ function startNewGroceryList(){
 }
 
 function saveGroceryList(){
-  var name = 'List — '+new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  var defaultName = 'List — '+new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  var name = prompt('Name this list:', defaultName);
+  if(name===null) return; // cancelled
+  if(!name.trim()) name = defaultName;
   var listObj = { name:name, savedAt:Date.now(), items:JSON.parse(JSON.stringify(activeGroceryItems)) };
   if(activeGroceryList !== null){
     savedGroceryLists[activeGroceryList] = listObj;
@@ -1901,6 +1913,12 @@ function saveGroceryList(){
   setTimeout(function(){ btn.textContent = '💾 Save List'; }, 2000);
 }
 
+function toggleStarList(idx){
+  savedGroceryLists[idx].starred = !savedGroceryLists[idx].starred;
+  localStorage.setItem('savedGroceryLists', JSON.stringify(savedGroceryLists));
+  renderSavedLists();
+}
+
 function deleteGroceryList(idx){
   if(!confirm('Delete this list?')) return;
   savedGroceryLists.splice(idx,1);
@@ -1914,40 +1932,94 @@ function renderGroceryTabItems(){
   var container = document.getElementById('groceryTabItems');
   if(!container) return;
   var filtered = gTabFilter==='all' ? activeGroceryItems : activeGroceryItems.filter(function(i){ return i.store===gTabFilter; });
-  // Sort: qty>0 first, checked last
-  filtered.sort(function(a,b){
-    if(a.checked!==b.checked) return a.checked?1:-1;
-    if((a.qty>0)!==(b.qty>0)) return a.qty>0?-1:1;
-    return 0;
-  });
   container.innerHTML = '';
   if(!filtered.length){ container.innerHTML='<div class="empty-hint">No items</div>'; return; }
   filtered.forEach(function(item){
     var ri = activeGroceryItems.indexOf(item);
     var isTJ = item.store==='tj';
-    var isZero = item.qty===0;
+    var isActive = item.qty > 0;
+    var notes = item.notes || [];
     var row = document.createElement('div');
-    row.style.cssText = 'display:grid;grid-template-columns:24px 1fr 90px 120px 28px;gap:8px;padding:8px 4px;border-bottom:1px solid var(--border);align-items:center;opacity:'+(item.checked?'0.38':isZero?'0.45':'1');
-    var checkSvg = item.checked?'<svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>':'';
+    row.style.cssText = 'padding:8px 10px;border-radius:12px;border:2px solid '+(isActive?'var(--teal)':'var(--border)')+';margin-bottom:6px;background:'+(isActive?'var(--teal-l)':'var(--bg)')+';transition:all 0.2s';
+
+    // Notes bullets HTML
+    var notesHtml = '';
+    if(notes.length){
+      notesHtml = '<div style="margin-top:5px;padding-left:4px">';
+      notes.forEach(function(note, ni){
+        notesHtml += '<div style="display:flex;align-items:flex-start;gap:5px;margin-top:3px">'
+          +'<span style="color:var(--purple);font-size:0.7rem;margin-top:1px">•</span>'
+          +'<span style="font-size:0.7rem;color:var(--purple);font-style:italic;flex:1">'+note+'</span>'
+          +'<button onclick="deleteGroceryNote('+ri+','+ni+')" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:0.62rem;padding:0;opacity:0.5;flex-shrink:0">✕</button>'
+        +'</div>';
+      });
+      notesHtml += '</div>';
+    }
+
+    // Note input (hidden by default)
+    var noteInputId = 'note-input-'+ri;
+    var noteRowId = 'note-row-'+ri;
+
+    // First note preview
+    var firstNote = notes.length ? notes[0] : null;
+    var moreNotes = notes.length > 1 ? '+'+(notes.length-1)+' more' : '';
+
     row.innerHTML =
-      '<div style="width:20px;height:20px;border-radius:5px;border:2px solid var(--teal);cursor:pointer;display:flex;align-items:center;justify-content:center;background:'+(item.checked?'var(--teal)':'transparent')+'" onclick="toggleGroceryTab('+ri+')">'+checkSvg+'</div>'
-      +'<div><div style="font-size:0.83rem;font-weight:700;'+(item.checked?'text-decoration:line-through':'')+(isZero?';color:var(--muted)':'')+'">'+item.name+'</div>'+(item.note?'<div style="font-size:0.68rem;color:var(--purple);font-style:italic;margin-top:1px">📝 '+item.note+'</div>':'')+'</div>'
-      +'<div style="display:flex;align-items:center;gap:4px">'
-        +'<button onclick="changeGroceryTabQty('+ri+',-1)" style="width:22px;height:22px;border-radius:50%;border:none;background:var(--bg);cursor:pointer;font-weight:900;font-size:0.85rem">−</button>'
-        +'<span style="font-size:0.83rem;font-weight:800;min-width:18px;text-align:center;color:'+(isZero?'var(--muted)':'var(--ink)')+'">'+item.qty+'</span>'
-        +'<button onclick="changeGroceryTabQty('+ri+',1)" style="width:22px;height:22px;border-radius:50%;border:none;background:var(--teal-l);color:var(--teal);cursor:pointer;font-weight:900;font-size:0.85rem">+</button>'
+      '<div style="display:flex;align-items:flex-start;gap:10px">'
+        // Item info
+        +'<div style="flex:1;min-width:0">'
+          +'<div style="font-size:0.88rem;font-weight:'+(isActive?'800':'700')+';color:'+(isActive?'var(--ink)':'var(--muted)')+'">'+item.name+'</div>'
+          +(firstNote
+            ?'<div style="font-size:0.7rem;color:var(--purple);font-style:italic;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">📝 '+firstNote+(moreNotes?' <span style="color:var(--muted)">'+moreNotes+'</span>':'')+'</div>'
+            :'<div style="font-size:0.68rem;color:var(--muted);margin-top:2px;font-style:italic;opacity:0.6">No notes</div>'
+          )
+        +'</div>'
+        // Store logos — bigger
+        +'<div style="display:flex;gap:4px;align-items:center;flex-shrink:0">'
+          +'<button onclick="setGroceryTabItemStore('+ri+',&quot;tj&quot;)" style="border:2px solid '+(isTJ?'var(--tj)':'var(--border)')+';border-radius:8px;background:'+(isTJ?'#FFF0F0':'white')+';cursor:pointer;padding:5px 8px;font-size:1.1rem;line-height:1;transition:all 0.15s" title="Trader Joes">🛍</button>'
+          +'<button onclick="setGroceryTabItemStore('+ri+',&quot;co&quot;)" style="border:2px solid '+(!isTJ?'var(--co)':'var(--border)')+';border-radius:8px;background:'+(!isTJ?'#EEF4FF':'white')+';cursor:pointer;padding:5px 8px;font-size:1.1rem;line-height:1;transition:all 0.15s" title="Costco">🏪</button>'
+        +'</div>'
+        // Qty controls
+        +'<div style="display:flex;align-items:center;gap:6px;flex-shrink:0">'
+          +'<button onclick="changeGroceryTabQty('+ri+',-1)" style="width:30px;height:30px;border-radius:50%;border:1.5px solid var(--border);background:white;cursor:pointer;font-weight:900;font-size:1.1rem;display:flex;align-items:center;justify-content:center">−</button>'
+          +'<span style="font-size:1rem;font-weight:900;min-width:24px;text-align:center;color:'+(isActive?'var(--teal)':'var(--muted)')+'">'+item.qty+'</span>'
+          +'<button onclick="changeGroceryTabQty('+ri+',1)" style="width:30px;height:30px;border-radius:50%;border:1.5px solid var(--teal);background:var(--teal);color:white;cursor:pointer;font-weight:900;font-size:1.1rem;display:flex;align-items:center;justify-content:center">+</button>'
+        +'</div>'
+        // Notes + delete
+        +'<div style="display:flex;gap:3px;flex-shrink:0">'
+          +'<button onclick="toggleNoteInput('+ri+')" style="border:1.5px solid '+(notes.length?'var(--purple)':'var(--border)')+';border-radius:7px;background:'+(notes.length?'var(--purple-l)':'white')+';cursor:pointer;padding:5px 7px;font-size:0.9rem" title="Notes">📝</button>'
+          +'<button onclick="removeGroceryTabItem('+ri+')" style="border:none;background:none;cursor:pointer;color:var(--muted);font-size:0.8rem;padding:5px;opacity:0.4">✕</button>'
+        +'</div>'
       +'</div>'
-      +'<div style="display:flex;gap:4px">'
-        +'<button onclick="setGroceryTabItemStore('+ri+',&quot;tj&quot;)" style="flex:1;border:2px solid '+(isTJ?'var(--tj)':'var(--border)')+';border-radius:7px;background:'+(isTJ?'#FFF0F0':'white')+';cursor:pointer;padding:3px 4px;font-size:0.65rem;font-weight:900;color:'+(isTJ?'var(--tj)':'var(--muted)')+'">🛍 TJ</button>'
-        +'<button onclick="setGroceryTabItemStore('+ri+',&quot;co&quot;)" style="flex:1;border:2px solid '+(!isTJ?'var(--co)':'var(--border)')+';border-radius:7px;background:'+(!isTJ?'#EEF4FF':'white')+';cursor:pointer;padding:3px 4px;font-size:0.65rem;font-weight:900;color:'+(!isTJ?'var(--co)':'var(--muted)')+'">🏪 Co</button>'
-      +'</div>'
-      +'<button onclick="removeGroceryTabItem('+ri+')" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:0.82rem;opacity:0.45">✕</button>';
+      +'<div id="'+noteRowId+'" style="display:none;margin-top:8px;display:none">'
+        +'<div style="display:flex;gap:6px">'
+          +'<input id="'+noteInputId+'" class="add-input" placeholder="Add note…" style="flex:1;font-size:0.78rem" onkeydown="if(event.key==\'Enter\')addGroceryNote('+ri+')">'
+          +'<button onclick="addGroceryNote('+ri+')" class="btn btn-purple btn-sm">+ Add</button>'
+        +'</div>'
+      +'</div>';
     container.appendChild(row);
   });
 }
 
-function toggleGroceryTab(i){ activeGroceryItems[i].checked=!activeGroceryItems[i].checked; renderGroceryTabItems(); }
-function changeGroceryTabQty(i,d){ activeGroceryItems[i].qty=Math.max(0,activeGroceryItems[i].qty+d); renderGroceryTabItems(); }
+
+function changeGroceryTabQty(i,d){
+  activeGroceryItems[i].qty = Math.max(0, activeGroceryItems[i].qty+d);
+  // Update in place without full re-render to preserve position
+  var rows = document.getElementById('groceryTabItems').children;
+  // Find row index (filtered may differ from actual)
+  var filtered = gTabFilter==='all' ? activeGroceryItems : activeGroceryItems.filter(function(it){ return it.store===gTabFilter; });
+  var fi = filtered.indexOf(activeGroceryItems[i]);
+  if(fi >= 0 && rows[fi]){
+    var item = activeGroceryItems[i];
+    var isActive = item.qty > 0;
+    rows[fi].style.border = '2px solid '+(isActive?'var(--teal)':'var(--border)');
+    rows[fi].style.background = isActive?'var(--teal-l)':'var(--bg)';
+    var nameEl = rows[fi].querySelector('div > div');
+    if(nameEl){ nameEl.style.color = isActive?'var(--ink)':'var(--muted)'; nameEl.style.fontWeight = isActive?'800':'700'; }
+    var qtyEl = rows[fi].querySelectorAll('span')[0];
+    if(qtyEl){ qtyEl.textContent = item.qty; qtyEl.style.color = isActive?'var(--teal)':'var(--muted)'; }
+  }
+}
 function setGroceryTabItemStore(i,store){ activeGroceryItems[i].store=store.replace(/&quot;/g,''); renderGroceryTabItems(); }
 function removeGroceryTabItem(i){ activeGroceryItems.splice(i,1); renderGroceryTabItems(); }
 function filterGroceryTab(store,btn){
@@ -1963,6 +2035,40 @@ function setGroceryTabStore(store,btn){
   document.getElementById('gtab-pick-co').style.borderColor=store==='co'?'var(--co)':'var(--border)';
   document.getElementById('gtab-pick-co').style.background=store==='co'?'#EEF4FF':'white';
 }
+function toggleNoteInput(i){
+  var id = 'note-row-'+i;
+  var el = document.getElementById(id);
+  if(!el) return;
+  el.style.display = el.style.display==='none'?'block':'none';
+  if(el.style.display==='block'){
+    var inp = document.getElementById('note-input-'+i);
+    if(inp) inp.focus();
+  }
+}
+function addGroceryNote(i){
+  var inp = document.getElementById('note-input-'+i);
+  if(!inp) return;
+  var val = inp.value.trim(); if(!val) return;
+  if(!activeGroceryItems[i].notes) activeGroceryItems[i].notes=[];
+  activeGroceryItems[i].notes.push(val);
+  // Also update master list
+  var masterItem = GROCERY_MASTER.find(function(m){ return m.name===activeGroceryItems[i].name; });
+  if(masterItem){ if(!masterItem.notes)masterItem.notes=[]; masterItem.notes.push(val); }
+  localStorage.setItem('groceryMasterNotes', JSON.stringify(
+    GROCERY_MASTER.reduce(function(acc,m){ acc[m.name]=m.notes||[]; return acc; },{})));
+  inp.value='';
+  renderGroceryTabItems();
+}
+function deleteGroceryNote(i, ni){
+  if(!activeGroceryItems[i].notes) return;
+  activeGroceryItems[i].notes.splice(ni,1);
+  var masterItem = GROCERY_MASTER.find(function(m){ return m.name===activeGroceryItems[i].name; });
+  if(masterItem && masterItem.notes) masterItem.notes.splice(ni,1);
+  localStorage.setItem('groceryMasterNotes', JSON.stringify(
+    GROCERY_MASTER.reduce(function(acc,m){ acc[m.name]=m.notes||[]; return acc; },{})));
+  renderGroceryTabItems();
+}
+
 function addGroceryTabItem(){
   var name=document.getElementById('gtabItemInput').value.trim(); if(!name) return;
   var qty=parseInt(document.getElementById('gtabQtyInput').value)||1;
@@ -2066,14 +2172,14 @@ async function processDictation(){
       if(existing){
         if(parsed.qty) existing.qty = parsed.qty;
         if(parsed.store) existing.store = parsed.store;
-        if(parsed.note) existing.note = parsed.note;
+        if(parsed.note){ if(!existing.notes)existing.notes=[]; existing.notes.push(parsed.note); }
         updated++;
       } else {
         activeGroceryItems.unshift({
           name: parsed.name,
           qty: parsed.qty || 1,
           store: parsed.store || 'tj',
-          note: parsed.note || null,
+          notes: parsed.note ? [parsed.note] : [],
           checked: false
         });
         added++;
