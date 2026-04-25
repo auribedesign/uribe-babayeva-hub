@@ -338,20 +338,26 @@ function cleanOldLists(){
 function loadSavedLists(){
   var container = document.getElementById('savedListsContainer');
   if(!savedLists.length){
-    container.innerHTML = '<div class="empty-state">No saved lists yet — start a new one!</div>';
+    container.innerHTML = '<div class="empty-state">No saved lists yet</div>';
     return;
   }
   container.innerHTML = '';
-  savedLists.slice().reverse().forEach(function(list, revIdx){
-    var idx = savedLists.length - 1 - revIdx;
+  // Sort: starred first, then by date
+  var sorted = savedLists.map(function(l,i){ return {list:l,idx:i}; });
+  sorted.sort(function(a,b){ return (b.list.starred?1:0)-(a.list.starred?1:0)||(b.list.savedAt-a.list.savedAt); });
+  sorted.forEach(function(entry){
+    var list=entry.list, idx=entry.idx;
     var itemCount = list.items.filter(function(i){ return i.qty > 0; }).length;
     var checkedCount = list.items.filter(function(i){ return i.checked; }).length;
+    var isStarred = list.starred || false;
     var div = document.createElement('div');
     div.className = 'saved-list-item';
+    div.style.border = isStarred ? '2px solid var(--amber)' : '';
+    div.style.background = isStarred ? 'var(--amber-l,#FFFBEB)' : '';
     div.innerHTML =
       '<div class="saved-list-info">'
-        +'<div class="saved-list-date">📋 '+list.name+'</div>'
-        +'<div class="saved-list-count">'+itemCount+' items · '+checkedCount+' checked · Saved '+new Date(list.savedAt).toLocaleDateString('en-US',{month:'short',day:'numeric'})+'</div>'
+        +'<div class="saved-list-date">'+(isStarred?'⭐':'📋')+' '+list.name+'</div>'
+        +'<div class="saved-list-count">'+itemCount+' items · '+checkedCount+' checked · '+new Date(list.savedAt).toLocaleDateString('en-US',{month:'short',day:'numeric'})+'</div>'
       +'</div>'
       +'<div class="saved-list-actions">'
         +'<button class="btn btn-primary btn-sm" onclick="loadList('+idx+')">Open</button>'
