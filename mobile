@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Family Hub">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#4F7DFF">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
 <title>Family Hub Mobile</title>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Fredoka+One&display=swap" rel="stylesheet">
@@ -453,7 +458,7 @@ function renderGroceryList(){
     var storeClass = item.store==='tj' ? 'g-store-tj' : 'g-store-co';
     div.innerHTML =
       '<div class="g-checkbox" onclick="toggleItem('+ri+')" style="background:'+(item.checked?'var(--teal)':'transparent')+'">'+checkSvg+'</div>'
-      +'<div class="g-info"><div class="g-name">'+item.name+(item.qty===0?'<span style="color:var(--muted);font-size:0.7rem;margin-left:4px">(not needed)</span>':'')+'</div><span class="g-store-badge '+storeClass+'">'+storeLabel+'</span></div>'
+      +'<div class="g-info"><div class="g-name">'+item.name+(item.qty===0?'<span style="color:var(--muted);font-size:0.7rem;margin-left:4px">(not needed)</span>':'')+'</div>'+(item.note?'<div style="font-size:0.68rem;color:#8B5CF6;font-style:italic;margin-top:2px">📝 '+item.note+'</div>':'')+'<span class="g-store-badge '+storeClass+'">'+storeLabel+'</span></div>'
       +'<div class="g-qty-ctrl">'
         +'<button class="qty-btn qty-minus" onclick="changeQty('+ri+',-1)">−</button>'
         +'<span class="qty-val" style="color:'+(item.qty===0?'var(--muted)':'var(--ink)')+'">'+item.qty+'</span>'
