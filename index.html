@@ -828,13 +828,21 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--ink);}
     <!-- Star Board -->
     <div class="card">
       <div class="sec-title"><div class="sec-icon" style="background:var(--amber-l)">🌟</div>Emma's Star Board <span style="font-size:0.65rem;font-weight:700;color:var(--muted);margin-left:auto">Parent-controlled</span></div>
-      <div id="starCategories" style="flex:1;overflow-y:auto"></div>
-      <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);flex-shrink:0">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <div id="starCategories" style="flex:1;overflow-y:auto;min-height:0"></div>
+      <!-- Add custom chore -->
+      <div style="border-top:1px solid var(--border);padding-top:8px;margin-top:6px;flex-shrink:0">
+        <div style="font-size:0.6rem;font-weight:900;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-bottom:5px">+ Add Custom Chore</div>
+        <div style="display:flex;gap:5px;margin-bottom:5px">
+          <input class="add-input" id="starChoreInput" placeholder="Chore name…" style="flex:1">
+          <input class="add-input" id="starChoreEmoji" placeholder="🌟" style="width:44px;text-align:center">
+          <input class="add-input" id="starChorePts" type="number" min="1" max="10" value="1" style="width:44px;text-align:center">
+          <button class="btn btn-amber btn-sm" onclick="requirePin(addCustomChore)">+ Add</button>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between">
           <span style="font-size:0.72rem;font-weight:800;color:var(--muted)">Total stars this week</span>
           <span id="totalStars" style="font-family:'Fredoka One',cursive;font-size:1.4rem;color:var(--amber)">0</span>
         </div>
-        <button class="btn btn-ghost btn-sm btn-full" onclick="requirePin(resetStarBoard)">↺ Reset Week</button>
+        <button class="btn btn-ghost btn-sm btn-full" onclick="requirePin(resetStarBoard)" style="margin-top:6px">↺ Reset Week</button>
       </div>
     </div>
 
@@ -994,12 +1002,34 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--ink);}
       <!-- Word input -->
       <div style="flex-shrink:0">
         <div style="font-size:0.6rem;font-weight:900;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-bottom:4px">Secret Word</div>
-        <div style="display:flex;gap:5px">
+        <div style="display:flex;gap:5px;margin-bottom:5px">
           <input class="add-input" id="hmWordInput" placeholder="Type secret word…" style="flex:1;text-transform:uppercase">
           <button class="btn btn-primary btn-sm" onclick="startHangman()">▶ Play</button>
         </div>
-        <button class="btn btn-purple btn-sm btn-full" onclick="suggestHangmanWord()" id="hmSuggestBtn" style="margin-top:5px">✨ AI Suggest</button>
-        <div id="hmSuggestResult" style="font-size:0.72rem;color:var(--purple);font-weight:700;min-height:14px;text-align:center;margin-top:3px"></div>
+        <!-- Word reveal -->
+        <div style="display:flex;align-items:center;gap:6px;background:var(--bg);border-radius:9px;padding:6px 10px;margin-bottom:5px">
+          <span id="hmWordReveal" style="font-size:0.82rem;font-weight:800;color:var(--ink);flex:1;letter-spacing:0.1em">—</span>
+          <button onclick="toggleHmWordReveal()" id="hmRevealBtn" style="border:none;background:none;cursor:pointer;font-size:0.72rem;font-weight:800;color:var(--blue)">👁 Show</button>
+        </div>
+        <!-- AI Suggest with difficulty + category -->
+        <div style="background:var(--purple-l);border-radius:10px;padding:8px;margin-bottom:5px">
+          <div style="display:flex;gap:4px;margin-bottom:5px">
+            <select id="hmDiffWord" class="text-input" style="flex:1;padding:4px 6px;font-size:0.72rem">
+              <option value="easy">😊 Easy</option>
+              <option value="medium" selected>🙂 Medium</option>
+              <option value="hard">😤 Hard</option>
+            </select>
+            <select id="hmCategory" class="text-input" style="flex:1;padding:4px 6px;font-size:0.72rem">
+              <option value="any">🎲 Any</option>
+              <option value="animals">🐾 Animals</option>
+              <option value="food">🍕 Food</option>
+              <option value="places">🌍 Places</option>
+              <option value="things">🎒 Things</option>
+            </select>
+          </div>
+          <button class="btn btn-purple btn-sm btn-full" onclick="suggestHangmanWord()" id="hmSuggestBtn">✨ AI Suggest</button>
+          <div id="hmSuggestResult" style="font-size:0.7rem;color:var(--purple);font-weight:700;min-height:12px;text-align:center;margin-top:3px"></div>
+        </div>
       </div>
 
       <!-- Keyboard -->
@@ -1052,7 +1082,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--ink);}
       <!-- Word blanks -->
       <div id="hmWordDisplay" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;padding:6px"></div>
       <!-- Status -->
-      <div id="hmStatus" style="font-family:Fredoka-One,cursive;font-size:1.1rem;color:var(--teal);text-align:center;min-height:28px"></div>
+      <div id="hmStatus" style="font-family:Nunito,sans-serif;font-size:1.1rem;font-weight:900;color:var(--teal);text-align:center;min-height:28px"></div>
       <div id="hmWrongLetters" style="font-size:0.75rem;font-weight:700;color:var(--red);text-align:center;min-height:18px"></div>
       <button class="btn btn-ghost btn-sm" onclick="resetHangman()">↺ New Game</button>
     </div>
@@ -1688,13 +1718,42 @@ function renderStarBoard(){
   winsData.starCats.forEach(function(cat,idx){
     total+=cat.count*cat.pts;
     var row=document.createElement('div');row.className='star-category';
-    row.innerHTML='<span class="star-cat-emoji">'+cat.emoji+'</span><span class="star-cat-label">'+cat.label+'</span><span style="font-size:0.65rem;color:var(--muted);font-weight:700;margin-right:4px">+'+cat.pts+'</span><span class="star-cat-count">'+cat.count+'</span><button class="star-add-btn" onclick="addStar('+idx+')">+</button>';
+    row.innerHTML=
+      '<span class="star-cat-emoji">'+(cat.emoji||'⭐')+'</span>'
+      +'<span class="star-cat-label">'+cat.label+'</span>'
+      +'<span style="font-size:0.65rem;color:var(--muted);font-weight:700;margin-right:4px">+'+cat.pts+'</span>'
+      +'<span class="star-cat-count">'+cat.count+'</span>'
+      +'<div style="display:flex;gap:3px">'
+        +'<button class="star-add-btn" style="background:var(--red-l);color:var(--red)" onclick="requirePin(function(){subtractStar('+idx+')})">−</button>'
+        +'<button class="star-add-btn" onclick="requirePin(function(){addStar('+idx+')})">+</button>'
+      +'</div>'
+      +(cat.custom?'<button onclick="requirePin(function(){deleteChore('+idx+')})" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:0.7rem;opacity:0.5;padding:0 2px">✕</button>':'');
     container.appendChild(row);
   });
   var ts=document.getElementById('totalStars');if(ts)ts.textContent=total;
 }
 function addStar(idx){
   winsData.starCats[idx].count++;
+  saveWins();renderStarBoard();updateNetScore();updateTallySummary();
+}
+function subtractStar(idx){
+  if(winsData.starCats[idx].count > 0) winsData.starCats[idx].count--;
+  saveWins();renderStarBoard();updateNetScore();updateTallySummary();
+}
+function addCustomChore(){
+  var name=document.getElementById('starChoreInput').value.trim();
+  var emoji=document.getElementById('starChoreEmoji').value.trim()||'⭐';
+  var pts=parseInt(document.getElementById('starChorePts').value)||1;
+  if(!name) return;
+  winsData.starCats.push({emoji:emoji, label:name, pts:pts, count:0, custom:true});
+  document.getElementById('starChoreInput').value='';
+  document.getElementById('starChoreEmoji').value='';
+  document.getElementById('starChorePts').value='1';
+  saveWins();renderStarBoard();
+}
+function deleteChore(idx){
+  if(!winsData.starCats[idx].custom) return;
+  winsData.starCats.splice(idx,1);
   saveWins();renderStarBoard();updateNetScore();updateTallySummary();
 }
 function resetStarBoard(){
@@ -2669,14 +2728,33 @@ function buildHmKeyboard(){
   });
 }
 
+var hmWordVisible = false;
+function toggleHmWordReveal(){
+  hmWordVisible = !hmWordVisible;
+  var rev = document.getElementById('hmWordReveal');
+  var btn = document.getElementById('hmRevealBtn');
+  if(rev) rev.textContent = hmWordVisible ? (hmWord || '—') : (hmWord ? '●'.repeat(hmWord.length) : '—');
+  if(btn) btn.textContent = hmWordVisible ? '🙈 Hide' : '👁 Show';
+}
+
+function updateHmRevealDisplay(){
+  var rev = document.getElementById('hmWordReveal');
+  if(!rev) return;
+  if(!hmWord){ rev.textContent='—'; return; }
+  rev.textContent = hmWordVisible ? hmWord : '●'.repeat(hmWord.length);
+  var btn = document.getElementById('hmRevealBtn');
+  if(btn) btn.textContent = hmWordVisible ? '🙈 Hide' : '👁 Show';
+}
+
 function startHangman(){
   var input=document.getElementById('hmWordInput');
   var word=input.value.trim().toUpperCase().replace(/[^A-Z]/g,'');
   if(word.length<2){ alert('Enter at least 2 letters!'); return; }
-  hmWord=word; hmGuessed=[]; hmWrongCount=0;
+  hmWord=word; hmGuessed=[]; hmWrongCount=0; hmWordVisible=false;
   hmCurrentWordPicker=document.getElementById('hmWordPicker').value;
   hmCurrentGuesser=document.getElementById('hmGuesser').value;
   input.value='';
+  updateHmRevealDisplay();
   HM_PARTS.forEach(function(id){ var el=document.getElementById(id); if(el) el.style.display='none'; });
   updateHmDisplay();
   buildHmKeyboard();
@@ -2711,7 +2789,7 @@ function updateHmDisplay(){
   display.innerHTML=hmWord.split('').map(function(letter){
     var revealed=hmGuessed.indexOf(letter)!==-1;
     return '<div style="display:flex;flex-direction:column;align-items:center;gap:3px">'
-      +'<div style="font-family:Fredoka-One,cursive;font-size:1.6rem;min-width:28px;text-align:center;color:var(--ink)">'+(revealed?letter:'&nbsp;')+'</div>'
+      +'<div style="font-family:Nunito,sans-serif;font-weight:900;font-size:1.6rem;min-width:28px;text-align:center;color:var(--ink)">'+(revealed?letter:'&nbsp;')+'</div>'
       +'<div style="width:24px;height:3px;background:var(--ink);border-radius:2px"></div>'
     +'</div>';
   }).join('');
@@ -2772,8 +2850,8 @@ function renderHmLeaderboard(){
     row.style.cssText='display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:10px;background:'+(i===0?'var(--amber-l)':'var(--bg)')+';margin-bottom:5px';
     row.innerHTML='<span style="font-size:1rem">'+medal+'</span>'
       +'<span style="font-size:0.85rem;font-weight:800;flex:1">'+name+'</span>'
-      +'<span style="background:var(--teal-l);color:var(--teal);font-family:Fredoka-One,cursive;font-size:0.9rem;border-radius:8px;padding:2px 8px">'+s.wins+'W</span>'
-      +'<span style="background:var(--red-l);color:var(--red);font-family:Fredoka-One,cursive;font-size:0.9rem;border-radius:8px;padding:2px 8px">'+s.losses+'L</span>';
+      +'<span style="background:var(--teal-l);color:var(--teal);font-family:Nunito,sans-serif;font-size:0.9rem;font-weight:900;border-radius:8px;padding:2px 8px">'+s.wins+'W</span>'
+      +'<span style="background:var(--red-l);color:var(--red);font-family:Nunito,sans-serif;font-size:0.9rem;font-weight:900;border-radius:8px;padding:2px 8px">'+s.losses+'L</span>';
     el.appendChild(row);
   });
 }
@@ -2803,16 +2881,33 @@ function resetHangmanScore(){
 async function suggestHangmanWord(){
   var btn=document.getElementById('hmSuggestBtn');
   btn.disabled=true; btn.innerHTML='<span class="spinner"></span>';
-  var cats=Object.keys(HM_WORD_CATEGORIES);
-  var cat=cats[Math.floor(Math.random()*cats.length)];
-  var words=HM_WORD_CATEGORIES[cat];
-  var word=words[Math.floor(Math.random()*words.length)];
-  document.getElementById('hmSuggestResult').textContent='✨ '+word.split('').join(' - ');
-  document.getElementById('hmWordInput').value=word;
+  var difficulty = document.getElementById('hmDiffWord') ? document.getElementById('hmDiffWord').value : 'medium';
+  var category = document.getElementById('hmCategory') ? document.getElementById('hmCategory').value : 'any';
+
+  var pool = [];
+  if(category === 'any'){
+    Object.values(HM_WORD_CATEGORIES).forEach(function(arr){ pool = pool.concat(arr); });
+  } else {
+    pool = HM_WORD_CATEGORIES[category] || [];
+    Object.values(HM_WORD_CATEGORIES).forEach(function(arr){ pool = pool.concat(arr); });
+  }
+
+  // Filter by difficulty (word length)
+  var filtered = pool.filter(function(w){
+    if(difficulty==='easy') return w.length <= 5;
+    if(difficulty==='medium') return w.length >= 5 && w.length <= 8;
+    if(difficulty==='hard') return w.length >= 8;
+    return true;
+  });
+  if(!filtered.length) filtered = pool;
+
+  var word = filtered[Math.floor(Math.random()*filtered.length)];
+  document.getElementById('hmWordInput').value = word;
+  document.getElementById('hmSuggestResult').textContent = '✨ '+ word.split('').join(' · ');
   setTimeout(function(){
-    document.getElementById('hmSuggestResult').textContent='';
+    document.getElementById('hmSuggestResult').textContent = '';
     startHangman();
-  },2500);
+  }, 2500);
   btn.disabled=false; btn.innerHTML='✨ AI Suggest';
 }
 
