@@ -1,14 +1,33 @@
 {
-  "name": "Alvaro Uribe Design Finance",
-  "short_name": "AUD Finance",
-  "description": "Personal finance dashboard",
-  "start_url": ".",
+  "name": "Uribe-Babayeva Family Hub",
+  "short_name": "Family Hub",
+  "description": "Family dashboard for the Uribe-Babayeva household",
+  "start_url": "/uribe-babayeva-hub/",
+  "scope": "/uribe-babayeva-hub/",
   "display": "standalone",
-  "orientation": "portrait-primary",
-  "background_color": "#000000",
-  "theme_color": "#000000",
+  "background_color": "#F2F4F8",
+  "theme_color": "#4F7DFF",
+  "orientation": "any",
   "icons": [
-    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Grocery List",
+      "short_name": "Grocery",
+      "url": "/uribe-babayeva-hub/#grocery",
+      "description": "Manage the family grocery list"
+    },
+    {
+      "name": "Emma's Wins",
+      "short_name": "Wins",
+      "url": "/uribe-babayeva-hub/#wins",
+      "description": "Track Emma's stars and sparks"
+    }
   ]
 }

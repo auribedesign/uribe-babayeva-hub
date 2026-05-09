@@ -8,9 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Family Hub">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#4F7DFF">
-<link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
-<link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="icon-16.png">
+<link rel="apple-touch-icon" href="icon.svg">
 <link rel="icon" type="image/svg+xml" href="icon.svg">
 <link rel="manifest" href="manifest.json">
 <title>Uribe-Babayeva Hub</title>
@@ -840,7 +838,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--ink);}
         </div>
         <div id="dictationTranscript" style="margin-top:6px;font-style:italic;color:var(--soft);min-height:18px;font-size:0.72rem"></div>
         <div style="display:flex;gap:8px;margin-top:8px">
-          <button class="btn btn-primary btn-sm" onclick="processDictation()" id="dictationProcessBtn" style="display:none">✨ Parse List</button>
+          <button class="btn btn-primary btn-sm" onclick="processDictation()" id="dictationProcessBtn" style="display:none">✨ Parse with AI</button>
           <button class="btn btn-ghost btn-sm" onclick="stopDictation()">Stop</button>
         </div>
       </div>
@@ -2613,18 +2611,37 @@ function stopDictation(){
   }
 }
 
-function processDictation(){
+async function processDictation(){
   var transcript = dictationFull.trim();
   if(!transcript) return;
   var btn = document.getElementById('dictationProcessBtn');
-  btn.disabled = true;
-  document.getElementById('dictationText').textContent = 'Parsing your list…';
+  btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Parsing…';
+  document.getElementById('dictationText').textContent='Claude is parsing your list…';
 
   try{
-    var items = parseGroceryText(transcript);
+    var response = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','anthropic-dangerous-allow-browser':'true'},
+      body: JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        messages:[{
+          role:'user',
+          content:'Parse this grocery dictation into a JSON array. Each item should have: name (string), qty (number, default 1), store ("tj" for Trader Joes or "co" for Costco, default "tj"), note (string or null for special instructions about freshness, brand, expiration etc). Return ONLY valid JSON array, no other text.\n\nDictation: "'+transcript+'"'
+        }]
+      })
+    });
+    var data = await response.json();
+    var text = data.content && data.content[0] && data.content[0].text ? data.content[0].text : '[]';
+    // Clean JSON
+    text = text.replace(/```json|```/g,'').trim();
+    var items = JSON.parse(text);
+
+    // Merge into active list
     var added=0, updated=0;
     items.forEach(function(parsed){
       if(!parsed.name) return;
+      // Check if item already exists in list
       var existing = activeGroceryItems.find(function(i){ return i.name.toLowerCase()===parsed.name.toLowerCase(); });
       if(existing){
         if(parsed.qty) existing.qty = parsed.qty;
@@ -2632,51 +2649,46 @@ function processDictation(){
         if(parsed.note){ if(!existing.notes)existing.notes=[]; existing.notes.push(parsed.note); }
         updated++;
       } else {
-        activeGroceryItems.push({ name:parsed.name, qty:parsed.qty||1, store:parsed.store||'tj', notes:parsed.note?[parsed.note]:[], checked:false });
+        activeGroceryItems.unshift({
+          name: parsed.name,
+          qty: parsed.qty || 1,
+          store: parsed.store || 'tj',
+          notes: parsed.note ? [parsed.note] : [],
+          checked: false
+        });
         added++;
       }
     });
+
     renderGroceryTabItems();
     document.getElementById('dictationStatus').style.display='none';
     document.getElementById('dictationTranscript').textContent='';
     dictationFull='';
-    var defaultName='List — '+new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
-    var listObj={name:defaultName,savedAt:Date.now(),items:JSON.parse(JSON.stringify(activeGroceryItems))};
-    if(activeGroceryList!==null){ savedGroceryLists[activeGroceryList]=listObj; }
-    else{ savedGroceryLists.push(listObj); activeGroceryList=savedGroceryLists.length-1; }
-    localStorage.setItem('savedGroceryLists',JSON.stringify(savedGroceryLists));
-    renderSavedLists();
-    document.getElementById('activeGroceryTitle').textContent=listObj.name;
-    document.getElementById('dictationText').textContent='\u2705 Added '+added+' item'+(added!==1?'s':'')+' — saved!';
-  } catch(e){
-    document.getElementById('dictationText').textContent='⚠️ Could not parse — try again.';
-  }
-  btn.disabled=false; btn.textContent='✨ Parse List';
-}
 
-function parseGroceryText(text){
-  var items=[];
-  var raw=text.replace(/\band\b/gi,',').replace(/[.!?]/g,',').split(/,|\n/);
-  var numWords={a:1,an:1,one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,dozen:12};
-  raw.forEach(function(chunk){
-    chunk=chunk.trim(); if(!chunk) return;
-    var item={name:'',qty:1,store:'tj',note:null};
-    if(/costco|costo|kirkland/i.test(chunk)) item.store='co';
-    if(/trader joe|tj.s/i.test(chunk)) item.store='tj';
-    var noteRe=/\b(make sure|check that|must be|no added|without|expir|organic|brand|date|ripe|low.fat|gluten.free)/i;
-    var nm=chunk.match(noteRe);
-    if(nm){ var ni=chunk.toLowerCase().indexOf(nm[1].toLowerCase()); item.note=chunk.substring(ni).trim(); chunk=chunk.substring(0,ni).trim(); }
-    var qm=chunk.match(/^(\d+)\s+/);
-    if(qm){ item.qty=parseInt(qm[1]); chunk=chunk.substring(qm[0].length).trim(); }
-    else{ for(var w in numWords){ if(new RegExp('\\b'+w+'\\b','i').test(chunk)){ item.qty=numWords[w]; chunk=chunk.replace(new RegExp('\\b'+w+'\\b','i'),'').trim(); break; } } }
-    chunk=chunk.replace(/\b(from|at|in)\s+(costco|trader joe.?s?|tj.?s?|kirkland)\b/gi,'').trim();
-    chunk=chunk.replace(/\b(costco|trader joe.?s?|tj.?s?|kirkland)\b/gi,'').trim();
-    chunk=chunk.replace(/^(get|buy|grab|need|pick up|also|we need|don.t forget)\s+/i,'').trim();
-    chunk=chunk.replace(/\b(please|some|more|extra|the)\b/gi,'').replace(/\s+/g,' ').trim();
-    item.name=chunk.replace(/\w\S*/g,function(t){ return t.charAt(0).toUpperCase()+t.substr(1).toLowerCase(); });
-    if(item.name.length>1) items.push(item);
-  });
-  return items;
+    // Show success toast
+    var statusDiv = document.getElementById('dictationStatus');
+    statusDiv.style.display = 'block';
+    statusDiv.style.background = 'var(--teal-l)';
+    document.getElementById('dictationDot').style.background = 'var(--teal)';
+    document.getElementById('dictationDot').style.animation = 'none';
+    document.getElementById('dictationText').textContent = '✅ Added '+added+' item'+(added!==1?'s':'')+', updated '+updated+' — saving…';
+    // Auto-save list
+    var defaultName = 'List — '+new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+    var listObj = { name:defaultName, savedAt:Date.now(), items:JSON.parse(JSON.stringify(activeGroceryItems)) };
+    if(activeGroceryList !== null){ savedGroceryLists[activeGroceryList]=listObj; }
+    else { savedGroceryLists.push(listObj); activeGroceryList=savedGroceryLists.length-1; }
+    localStorage.setItem('savedGroceryLists', JSON.stringify(savedGroceryLists));
+    renderSavedLists();
+    document.getElementById('activeGroceryTitle').textContent = listObj.name;
+    document.getElementById('dictationText').textContent = '✅ Added '+added+' item'+(added!==1?'s':'')+' — list saved!';
+    document.getElementById('dictationTranscript').textContent = '';
+    document.getElementById('dictationProcessBtn').style.display = 'none';
+    setTimeout(function(){ statusDiv.style.display='none'; statusDiv.style.background='var(--purple-l)'; },4000);
+
+  } catch(e){
+    document.getElementById('dictationText').textContent='⚠️ Could not parse. Try again. ('+e.message+')';
+    btn.disabled=false; btn.innerHTML='✨ Parse with AI';
+  }
 }
 
 // ── HANGMAN ──────────────────────────────────────────────────

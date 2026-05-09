@@ -9,6 +9,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#4F7DFF">
 <link rel="apple-touch-icon" href="icon.svg">
+<link rel="manifest" href="mobile-manifest.json">
 <link rel="icon" type="image/svg+xml" href="icon.svg">
 <title>Family Hub Mobile</title>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -262,10 +263,68 @@ body{padding-bottom:80px;}
   </div>
 
   <!-- TAB BAR -->
+    <!-- TALLY VIEW -->
+  <div class="view" id="view-tally">
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-title">🔊 Yelling Tally</div>
+      <div id="m-yell-rows" style="margin:10px 0"></div>
+      <button onclick="resetMYelling()" style="background:none;border:none;font-size:0.78rem;color:var(--muted);cursor:pointer;font-family:Nunito,sans-serif;font-weight:800;margin-top:4px">↺ Reset All</button>
+    </div>
+    <div class="card">
+      <div class="card-title">⭐ Emma This Week</div>
+      <div id="m-tally-summary" style="margin:8px 0"></div>
+    </div>
+  </div>
+
+  <!-- WINS VIEW -->
+  <div class="view" id="view-wins">
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-title">🌟 Emma's Stars</div>
+      <div id="m-star-cats" style="margin:8px 0"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding-top:8px;border-top:1px solid var(--border);margin-top:6px">
+        <span style="font-size:0.8rem;font-weight:800;color:var(--muted)">Total stars</span>
+        <span id="m-total-stars" style="font-size:1.4rem;color:var(--amber);font-weight:900">0</span>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-title">✨ Spark Jar</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0">
+        <span id="m-sparks" style="font-size:2rem;color:var(--amber);font-weight:900">0</span>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost btn-sm" onclick="mAdjSpark(-1)">−</button>
+          <button class="btn btn-amber btn-sm" onclick="mAdjSpark(1)">✨ Add</button>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">📝 Log Behavior</div>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <button class="btn btn-success btn-sm" id="m-beh-pos" onclick="setMBehType('pos',this)" style="flex:1">✅ Positive</button>
+        <button class="btn btn-ghost btn-sm" id="m-beh-neg" onclick="setMBehType('neg',this)" style="flex:1">⚠️ Needs Work</button>
+      </div>
+      <input class="text-input" id="m-beh-text" placeholder="What happened…" style="margin-bottom:8px;width:100%">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <button onclick="adjMBehPts(-1)" class="btn btn-ghost btn-sm" style="width:32px;height:32px;padding:0;border-radius:50%;justify-content:center">−</button>
+        <span id="m-beh-pts" style="font-size:1.4rem;color:var(--amber);font-weight:900;min-width:28px;text-align:center">1</span>
+        <button onclick="adjMBehPts(1)" class="btn btn-amber btn-sm" style="width:32px;height:32px;padding:0;border-radius:50%;justify-content:center">+</button>
+        <span style="font-size:0.75rem;color:var(--muted);font-weight:700">pts</span>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="saveMBehavior()" style="width:100%">💾 Save</button>
+    </div>
+  </div>
+
   <div class="tab-bar">
     <button class="tab-item active" id="tab-grocery" onclick="switchTab('grocery',this)">
       <div class="tab-icon">🛒</div>
       <div class="tab-label">Grocery</div>
+    </button>
+    <button class="tab-item" id="tab-tally" onclick="switchTab('tally',this)">
+      <div class="tab-icon">🔊</div>
+      <div class="tab-label">Tally</div>
+    </button>
+    <button class="tab-item" id="tab-wins" onclick="switchTab('wins',this)">
+      <div class="tab-icon">⭐</div>
+      <div class="tab-label">Emma</div>
     </button>
     <button class="tab-item" id="tab-media" onclick="switchTab('media',this)">
       <div class="tab-icon">📸</div>
@@ -338,20 +397,26 @@ function cleanOldLists(){
 function loadSavedLists(){
   var container = document.getElementById('savedListsContainer');
   if(!savedLists.length){
-    container.innerHTML = '<div class="empty-state">No saved lists yet — start a new one!</div>';
+    container.innerHTML = '<div class="empty-state">No saved lists yet</div>';
     return;
   }
   container.innerHTML = '';
-  savedLists.slice().reverse().forEach(function(list, revIdx){
-    var idx = savedLists.length - 1 - revIdx;
+  // Sort: starred first, then by date
+  var sorted = savedLists.map(function(l,i){ return {list:l,idx:i}; });
+  sorted.sort(function(a,b){ return (b.list.starred?1:0)-(a.list.starred?1:0)||(b.list.savedAt-a.list.savedAt); });
+  sorted.forEach(function(entry){
+    var list=entry.list, idx=entry.idx;
     var itemCount = list.items.filter(function(i){ return i.qty > 0; }).length;
     var checkedCount = list.items.filter(function(i){ return i.checked; }).length;
+    var isStarred = list.starred || false;
     var div = document.createElement('div');
     div.className = 'saved-list-item';
+    div.style.border = isStarred ? '2px solid var(--amber)' : '';
+    div.style.background = isStarred ? 'var(--amber-l,#FFFBEB)' : '';
     div.innerHTML =
       '<div class="saved-list-info">'
-        +'<div class="saved-list-date">📋 '+list.name+'</div>'
-        +'<div class="saved-list-count">'+itemCount+' items · '+checkedCount+' checked · Saved '+new Date(list.savedAt).toLocaleDateString('en-US',{month:'short',day:'numeric'})+'</div>'
+        +'<div class="saved-list-date">'+(isStarred?'⭐':'📋')+' '+list.name+'</div>'
+        +'<div class="saved-list-count">'+itemCount+' items · '+checkedCount+' checked · '+new Date(list.savedAt).toLocaleDateString('en-US',{month:'short',day:'numeric'})+'</div>'
       +'</div>'
       +'<div class="saved-list-actions">'
         +'<button class="btn btn-primary btn-sm" onclick="loadList('+idx+')">Open</button>'
@@ -458,7 +523,7 @@ function renderGroceryList(){
     var storeClass = item.store==='tj' ? 'g-store-tj' : 'g-store-co';
     div.innerHTML =
       '<div class="g-checkbox" onclick="toggleItem('+ri+')" style="background:'+(item.checked?'var(--teal)':'transparent')+'">'+checkSvg+'</div>'
-      +'<div class="g-info"><div class="g-name">'+item.name+(item.qty===0?'<span style="color:var(--muted);font-size:0.7rem;margin-left:4px">(not needed)</span>':'')+'</div><span class="g-store-badge '+storeClass+'">'+storeLabel+'</span></div>'
+      +'<div class="g-info"><div class="g-name">'+item.name+(item.qty===0?'<span style="color:var(--muted);font-size:0.7rem;margin-left:4px">(not needed)</span>':'')+'</div>'+(item.note?'<div style="font-size:0.68rem;color:#8B5CF6;font-style:italic;margin-top:2px">📝 '+item.note+'</div>':'')+'<span class="g-store-badge '+storeClass+'">'+storeLabel+'</span></div>'
       +'<div class="g-qty-ctrl">'
         +'<button class="qty-btn qty-minus" onclick="changeQty('+ri+',-1)">−</button>'
         +'<span class="qty-val" style="color:'+(item.qty===0?'var(--muted)':'var(--ink)')+'">'+item.qty+'</span>'
@@ -667,6 +732,146 @@ async function loadDriveMedia(){
 // ── INIT ──────────────────────────────────────────────────────
 loadSavedLists();
 cleanOldLists();
+
+// ── MOBILE TALLY + WINS ──────────────────────────────────────
+var mYellData={papa:0,mama:0,emma:0};
+var mWinsData={starCats:[],sparks:0,behavior:[]};
+var mBehType='pos', mBehPts=1;
+var M_PIN = localStorage.getItem('userPin')||'1234';
+var mPinVerified = false;
+
+function loadMobileSharedData(){
+  try{ mYellData=JSON.parse(localStorage.getItem('yellData')||'{"papa":0,"mama":0,"emma":0}'); }catch(e){}
+  try{
+    var sw=JSON.parse(localStorage.getItem('winsData')||'null');
+    if(sw) mWinsData=sw;
+  }catch(e){}
+}
+
+function renderMTally(){
+  loadMobileSharedData();
+  var rows=document.getElementById('m-yell-rows'); if(!rows) return;
+  var people=[['👨 Papa','papa'],['👩 Mama','mama'],['👧 Emma','emma']];
+  rows.innerHTML='';
+  var minVal=Math.min(mYellData.papa,mYellData.mama,mYellData.emma);
+  people.forEach(function(p){
+    var name=p[0],key=p[1],val=mYellData[key];
+    var row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)';
+    row.innerHTML='<span style="font-size:0.9rem;font-weight:800;flex:1">'+name+(val===minVal?' 🏆':'')+'</span>'
+      +'<span style="font-family:Fredoka One,cursive;font-size:1.4rem;color:var(--coral)">'+val+'</span>'
+      +'<button onclick="mYell(''+key+'',-1)" style="width:28px;height:28px;border-radius:50%;border:1.5px solid var(--border);background:white;cursor:pointer;font-weight:900">−</button>'
+      +'<button onclick="mYell(''+key+'',1)" style="width:28px;height:28px;border-radius:50%;border:none;background:var(--coral-l);color:var(--coral);cursor:pointer;font-weight:900">+</button>';
+    rows.appendChild(row);
+  });
+  // Tally summary
+  var sum=document.getElementById('m-tally-summary'); if(!sum) return;
+  var stars=mWinsData.starCats?mWinsData.starCats.reduce(function(s,c){return s+c.count*c.pts;},0):0;
+  var sparks=mWinsData.sparks||0;
+  var beh=(mWinsData.behavior||[]).reduce(function(s,b){return s+b.pts;},0);
+  sum.innerHTML='<div style="display:flex;gap:10px">'
+    +'<div style="flex:1;background:var(--amber-l);border-radius:10px;padding:10px;text-align:center"><div style="font-family:Fredoka One,cursive;font-size:1.5rem;color:var(--amber)">'+stars+'</div><div style="font-size:0.65rem;font-weight:800;color:var(--amber)">STARS</div></div>'
+    +'<div style="flex:1;background:var(--gold-l);border-radius:10px;padding:10px;text-align:center"><div style="font-family:Fredoka One,cursive;font-size:1.5rem;color:var(--spark)">'+sparks+'</div><div style="font-size:0.65rem;font-weight:800;color:var(--spark)">SPARKS</div></div>'
+    +'<div style="flex:1;background:var(--purple-l);border-radius:10px;padding:10px;text-align:center"><div style="font-family:Fredoka One,cursive;font-size:1.5rem;color:var(--purple)">'+(stars+sparks+beh)+'</div><div style="font-size:0.65rem;font-weight:800;color:var(--purple)">NET</div></div>'
+    +'</div>';
+}
+
+function mYell(who,d){
+  mYellData[who]=Math.max(0,mYellData[who]+d);
+  localStorage.setItem('yellData',JSON.stringify(mYellData));
+  renderMTally();
+}
+function resetMYelling(){
+  mYellData={papa:0,mama:0,emma:0};
+  localStorage.setItem('yellData',JSON.stringify(mYellData));
+  renderMTally();
+}
+
+function renderMWins(){
+  loadMobileSharedData();
+  // Stars
+  var cats=document.getElementById('m-star-cats'); if(!cats) return;
+  cats.innerHTML='';
+  var total=0;
+  (mWinsData.starCats||[]).forEach(function(cat,idx){
+    total+=cat.count*(cat.pts||1);
+    var row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)';
+    row.innerHTML='<span style="font-size:1rem">'+(cat.emoji||'⭐')+'</span>'
+      +'<span style="font-size:0.85rem;font-weight:700;flex:1">'+cat.label+'</span>'
+      +'<span style="font-size:0.65rem;color:var(--muted);font-weight:700">+'+cat.pts+'</span>'
+      +'<span style="font-family:Fredoka One,cursive;font-size:1rem;color:var(--amber)">'+cat.count+'</span>'
+      +'<button onclick="mAdjStar('+idx+',-1)" style="width:26px;height:26px;border-radius:50%;border:none;background:var(--red-l);color:var(--red);cursor:pointer;font-weight:900;font-size:0.9rem">−</button>'
+      +'<button onclick="mAdjStar('+idx+',1)" style="width:26px;height:26px;border-radius:50%;border:none;background:var(--amber-l);color:var(--amber);cursor:pointer;font-weight:900;font-size:0.9rem">+</button>';
+    cats.appendChild(row);
+  });
+  var ts=document.getElementById('m-total-stars'); if(ts) ts.textContent=total;
+  var sp=document.getElementById('m-sparks'); if(sp) sp.textContent=mWinsData.sparks||0;
+}
+
+function mAdjStar(idx,d){
+  if(!mPinVerified){ promptMPin(function(){ mAdjStar(idx,d); }); return; }
+  if(!mWinsData.starCats||!mWinsData.starCats[idx]) return;
+  mWinsData.starCats[idx].count=Math.max(0,mWinsData.starCats[idx].count+d);
+  saveAndSyncWins();
+  renderMWins();
+}
+
+function mAdjSpark(d){
+  if(!mPinVerified){ promptMPin(function(){ mAdjSpark(d); }); return; }
+  mWinsData.sparks=Math.max(0,(mWinsData.sparks||0)+d);
+  saveAndSyncWins();
+  renderMWins();
+}
+
+function saveAndSyncWins(){
+  mWinsData.week=getWeekKeyM();
+  localStorage.setItem('winsData',JSON.stringify(mWinsData));
+}
+
+function getWeekKeyM(){
+  var n=new Date(),d=n.getDay(),m=new Date(n);
+  m.setDate(n.getDate()-(d===0?6:d-1));
+  return m.toISOString().substring(0,10);
+}
+
+var mBehPendingPts=1;
+function setMBehType(type,btn){
+  mBehType=type;
+  document.getElementById('m-beh-pos').className='btn '+(type==='pos'?'btn-success':'btn-ghost')+' btn-sm';
+  document.getElementById('m-beh-neg').className='btn '+(type==='neg'?'btn-red':'btn-ghost')+' btn-sm';
+}
+function adjMBehPts(d){ mBehPendingPts=Math.max(1,Math.min(5,mBehPendingPts+d)); document.getElementById('m-beh-pts').textContent=mBehPendingPts; }
+function saveMBehavior(){
+  if(!mPinVerified){ promptMPin(saveMBehavior); return; }
+  var text=document.getElementById('m-beh-text').value.trim(); if(!text) return;
+  var pts=mBehType==='pos'?mBehPendingPts:-mBehPendingPts;
+  if(!mWinsData.behavior) mWinsData.behavior=[];
+  mWinsData.behavior.unshift({text:text,pts:pts,type:mBehType,time:new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'})});
+  document.getElementById('m-beh-text').value='';
+  saveAndSyncWins();
+  renderMWins();
+  alert('✅ Behavior logged!');
+}
+
+// Simple PIN prompt for mobile
+function promptMPin(callback){
+  var pin=prompt('Enter parent PIN:');
+  if(pin===M_PIN){ mPinVerified=true; callback(); }
+  else alert('Incorrect PIN');
+}
+
+// Override switchTab to render tally/wins on tab switch
+var _origSwitchTab=switchTab;
+switchTab=function(name,btn){
+  _origSwitchTab(name,btn);
+  if(name==='tally') renderMTally();
+  if(name==='wins') renderMWins();
+};
+
+// Init
+loadMobileSharedData();
+
 </script>
 </body>
 </html>
