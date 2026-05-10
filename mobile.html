@@ -2,876 +2,784 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Family Hub">
-<meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#4F7DFF">
-<link rel="apple-touch-icon" href="icon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
 <link rel="manifest" href="mobile-manifest.json">
-<link rel="icon" type="image/svg+xml" href="icon.svg">
 <title>Family Hub Mobile</title>
-<script src="https://accounts.google.com/gsi/client" async defer></script>
-<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Fredoka+One&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Fredoka+One&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async defer onload="initDriveClient()"></script>
 <style>
-:root {
-  --bg:#F2F4F8; --card:#FFF; --ink:#1A1A2E; --muted:#8890A6;
-  --border:rgba(0,0,0,0.08); --shadow:0 2px 16px rgba(0,0,0,0.08);
-  --blue:#4F7DFF; --blue-l:#EEF2FF;
-  --teal:#10B981; --teal-l:#ECFDF5;
-  --amber:#F59E0B; --amber-l:#FFF8E7;
-  --pink:#FF6B9D; --pink-l:#FFF0F6;
-  --red:#EF4444; --red-l:#FEF2F2;
-  --coral:#F97316;
-  --tj:#C8102E; --co:#005DAA;
+:root{
+  --bg:#F2F4F8;--card:#FFF;--ink:#1A1A2E;--soft:#4A4A6A;--muted:#8890A6;
+  --border:rgba(0,0,0,0.07);
+  --blue:#4F7DFF;--blue-l:#EEF2FF;
+  --teal:#10B981;--teal-l:#ECFDF5;
+  --amber:#F59E0B;--amber-l:#FFF8E7;
+  --purple:#8B5CF6;--purple-l:#F5F3FF;
+  --coral:#F97316;--coral-l:#FFF4ED;
+  --red:#EF4444;--red-l:#FEF2F2;
+  --pink:#FF6B9D;--pink-l:#FFF0F6;
+  --gold:#F59E0B;--gold-l:#FFFBEB;
+  --spark:#FBBF24;
+  --tj:#C8102E;--co:#005DAA;
+  --shadow:0 2px 12px rgba(0,0,0,0.08);
   --radius:16px;
 }
-*{box-sizing:border-box;margin:0;padding:0;}
-html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color:var(--ink);}
-body{padding-bottom:80px;}
-
-.topbar{background:var(--card);padding:16px 20px 12px;box-shadow:var(--shadow);position:sticky;top:0;z-index:100;}
-.topbar-brand{font-family:'Fredoka One',cursive;font-size:1.2rem;background:linear-gradient(135deg,var(--blue),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
-.topbar-sub{font-size:0.65rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;}
-.topbar-row{display:flex;align-items:center;justify-content:space-between;}
-
-.tab-bar{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--border);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom);}
-.tab-item{flex:1;display:flex;flex-direction:column;align-items:center;padding:10px 0;cursor:pointer;border:none;background:transparent;font-family:'Nunito',sans-serif;}
-.tab-icon{font-size:1.5rem;margin-bottom:2px;}
-.tab-label{font-size:0.62rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;}
-.tab-item.active .tab-label{color:var(--blue);}
-.tab-item.active .tab-icon{transform:scale(1.1);}
-
-.view{display:none;padding:16px;}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;font-family:'Nunito',sans-serif;background:var(--bg);color:var(--ink);overflow:hidden;}
+.app{display:flex;flex-direction:column;height:100vh;}
+.topbar{background:var(--card);padding:12px 16px 8px;display:flex;align-items:center;gap:10px;box-shadow:var(--shadow);flex-shrink:0;padding-top:max(12px,env(safe-area-inset-top));}
+.topbar-logo{font-size:1.4rem;}
+.topbar-title{font-family:'DM Serif Display',serif;font-size:1.1rem;flex:1;}
+.topbar-sub{font-size:0.6rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;}
+.views{flex:1;overflow:hidden;position:relative;}
+.view{position:absolute;inset:0;overflow-y:auto;padding:12px 14px 90px;display:none;}
 .view.active{display:block;}
+.tab-bar{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1.5px solid var(--border);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom);}
+.tab-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 0 8px;border:none;background:transparent;cursor:pointer;font-family:'Nunito',sans-serif;}
+.tab-icon{font-size:1.4rem;margin-bottom:2px;transition:transform 0.15s;}
+.tab-label{font-size:0.58rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;}
+.tab-btn.active .tab-icon{transform:scale(1.15);}
+.tab-btn.active .tab-label{color:var(--blue);}
 
-.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin-bottom:14px;}
-.card-title{font-family:'Fredoka One',cursive;font-size:1.05rem;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+/* Cards */
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin-bottom:12px;}
+.card-title{font-family:'DM Serif Display',serif;font-size:1rem;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.card-icon{width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:0.9rem;flex-shrink:0;}
 
-.btn{border:none;border-radius:12px;padding:12px 20px;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.9rem;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;justify-content:center;gap:6px;width:100%;margin-bottom:8px;}
-.btn:active{transform:scale(0.97);}
-.btn:disabled{opacity:0.5;cursor:not-allowed;}
+/* Buttons */
+.btn{border:none;border-radius:10px;padding:9px 16px;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.82rem;cursor:pointer;transition:all 0.15s;display:inline-flex;align-items:center;gap:5px;justify-content:center;}
+.btn:active{transform:scale(0.95);}
 .btn-primary{background:var(--blue);color:white;}
 .btn-success{background:var(--teal);color:white;}
 .btn-amber{background:var(--amber);color:white;}
-.btn-pink{background:var(--pink);color:white;}
-.btn-ghost{background:var(--bg);color:var(--ink);border:1.5px solid var(--border);}
+.btn-purple{background:var(--purple);color:white;}
 .btn-red{background:var(--red);color:white;}
-.btn-sm{padding:8px 14px;font-size:0.78rem;border-radius:10px;width:auto;margin-bottom:0;}
+.btn-ghost{background:var(--bg);color:var(--soft);border:1.5px solid var(--border);}
+.btn-sm{padding:6px 12px;font-size:0.75rem;border-radius:8px;}
+.btn-full{width:100%;}
+.text-input{width:100%;border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;font-size:0.9rem;font-family:'Nunito',sans-serif;background:var(--bg);outline:none;color:var(--ink);}
+.text-input:focus{border-color:var(--blue);}
 
-.store-filter-row{display:flex;gap:8px;margin-bottom:16px;}
-.store-chip{flex:1;padding:10px;border-radius:12px;border:2px solid var(--border);background:var(--card);font-family:'Nunito',sans-serif;font-size:0.8rem;font-weight:800;cursor:pointer;text-align:center;}
-.store-chip.active-all{background:var(--ink);color:white;border-color:var(--ink);}
-.store-chip.active-tj{background:#FFF0F0;color:var(--tj);border-color:var(--tj);}
-.store-chip.active-co{background:#EEF4FF;color:var(--co);border-color:var(--co);}
-
-.grocery-item{display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid var(--border);}
-.grocery-item:last-child{border-bottom:none;}
-.grocery-item.checked{opacity:0.38;}
-.grocery-item.checked .g-name{text-decoration:line-through;}
-.g-checkbox{width:28px;height:28px;border-radius:8px;border:2.5px solid var(--teal);flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.15s;}
-.grocery-item.checked .g-checkbox{background:var(--teal);}
-.g-info{flex:1;min-width:0;}
-.g-name{font-size:0.95rem;font-weight:700;}
-.g-store-badge{font-size:0.65rem;font-weight:900;padding:2px 8px;border-radius:20px;display:inline-block;margin-top:3px;}
+/* Grocery */
+.grocery-item{display:flex;align-items:center;gap:12px;padding:12px;border-radius:12px;border:2px solid var(--border);margin-bottom:8px;background:var(--card);transition:all 0.2s;}
+.grocery-item.active{border-color:var(--teal);background:var(--teal-l);}
+.grocery-item.shopping-checked{opacity:0.4;border-color:var(--border) !important;background:var(--bg) !important;}
+.grocery-item.shopping-checked .g-name{text-decoration:line-through;color:var(--muted);}
+.g-name{font-size:0.95rem;font-weight:700;flex:1;}
+.g-qty{font-family:'Fredoka One',cursive;font-size:1.1rem;color:var(--teal);min-width:24px;text-align:center;}
+.g-store-badge{font-size:0.65rem;font-weight:900;padding:3px 8px;border-radius:20px;flex-shrink:0;}
 .g-store-tj{background:#FFF0F0;color:var(--tj);}
 .g-store-co{background:#EEF4FF;color:var(--co);}
-.g-qty-ctrl{display:flex;align-items:center;gap:8px;flex-shrink:0;}
-.qty-btn{width:32px;height:32px;border-radius:50%;border:none;cursor:pointer;font-size:1.1rem;font-weight:900;display:flex;align-items:center;justify-content:center;}
-.qty-minus{background:var(--bg);color:var(--muted);}
-.qty-plus{background:var(--teal-l);color:var(--teal);}
-.qty-val{font-size:1rem;font-weight:800;min-width:24px;text-align:center;}
+.qty-ctrl{display:flex;align-items:center;gap:6px;}
+.qty-btn{width:30px;height:30px;border-radius:50%;border:none;cursor:pointer;font-weight:900;font-size:1rem;display:flex;align-items:center;justify-content:center;}
+.qty-minus{background:var(--bg);color:var(--muted);border:1.5px solid var(--border);}
+.qty-plus{background:var(--teal);color:white;}
 
-.form-input{width:100%;border:1.5px solid var(--border);border-radius:10px;padding:11px 14px;font-size:0.9rem;font-family:'Nunito',sans-serif;background:var(--card);outline:none;color:var(--ink);margin-bottom:10px;}
-.form-input:focus{border-color:var(--blue);}
-.store-pick-row{display:flex;gap:8px;margin-bottom:10px;}
-.store-pick-btn{flex:1;border:2px solid var(--border);border-radius:10px;padding:10px;cursor:pointer;font-family:'Nunito',sans-serif;font-size:0.82rem;font-weight:800;background:white;text-align:center;transition:all 0.15s;}
-.store-pick-btn.tj-active{background:#FFF0F0;border-color:var(--tj);color:var(--tj);}
-.store-pick-btn.co-active{background:#EEF4FF;border-color:var(--co);color:var(--co);}
+/* Shopping mode */
+.shopping-header{background:var(--teal);color:white;border-radius:14px;padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;}
+.shopping-progress{font-size:0.75rem;font-weight:800;opacity:0.85;}
+.store-section-hdr{font-size:0.65rem;font-weight:900;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);padding:8px 4px 4px;display:flex;align-items:center;gap:6px;}
 
-/* Saved lists */
-.saved-list-item{display:flex;align-items:center;gap:10px;padding:12px;border:1.5px solid var(--border);border-radius:12px;margin-bottom:8px;cursor:pointer;transition:all 0.15s;}
-.saved-list-item:active{background:var(--blue-l);}
-.saved-list-date{font-family:'Fredoka One',cursive;font-size:0.9rem;color:var(--blue);}
-.saved-list-info{flex:1;}
-.saved-list-count{font-size:0.72rem;color:var(--muted);font-weight:700;}
-.saved-list-actions{display:flex;gap:6px;}
+/* Emma wins */
+.star-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);}
+.star-row:last-child{border-bottom:none;}
+.star-emoji{font-size:1.1rem;flex-shrink:0;}
+.star-label{font-size:0.88rem;font-weight:700;flex:1;}
+.star-pts{font-size:0.65rem;color:var(--muted);font-weight:700;}
+.star-count{font-family:'Fredoka One',cursive;font-size:1.1rem;color:var(--amber);min-width:24px;text-align:center;}
+.adj-btn{width:28px;height:28px;border-radius:50%;border:none;cursor:pointer;font-weight:900;font-size:1rem;display:flex;align-items:center;justify-content:center;}
 
-/* Media upload */
-.upload-zone{border:2px dashed var(--border);border-radius:14px;padding:28px;text-align:center;cursor:pointer;transition:all 0.15s;margin-bottom:14px;background:var(--bg);}
+/* Tally */
+.tally-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);}
+.tally-row:last-child{border-bottom:none;}
+.tally-name{font-size:0.95rem;font-weight:800;flex:1;}
+.tally-count{font-family:'Fredoka One',cursive;font-size:1.5rem;color:var(--coral);min-width:32px;text-align:center;}
+
+/* Photos */
+.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px;}
+.photo-thumb{aspect-ratio:1;border-radius:10px;object-fit:cover;width:100%;}
+.upload-zone{border:2.5px dashed var(--border);border-radius:14px;padding:30px;text-align:center;cursor:pointer;transition:all 0.2s;}
 .upload-zone:active{border-color:var(--blue);background:var(--blue-l);}
-.upload-icon{font-size:2.5rem;margin-bottom:8px;}
-.upload-text{font-size:0.85rem;font-weight:700;color:var(--muted);}
-.upload-sub{font-size:0.72rem;color:var(--muted);margin-top:4px;}
-#mediaFileInput{display:none;}
 
-.media-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;}
-.media-thumb{aspect-ratio:1;border-radius:10px;object-fit:cover;width:100%;background:var(--bg);}
-.media-thumb-wrap{position:relative;}
-.media-del{position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,0.6);color:white;border:none;cursor:pointer;font-size:0.75rem;display:flex;align-items:center;justify-content:center;}
+/* Meals */
+.meal-day-card{background:var(--card);border-radius:12px;box-shadow:var(--shadow);margin-bottom:8px;overflow:hidden;}
+.meal-day-hdr{background:var(--blue);color:white;padding:8px 14px;font-weight:900;font-size:0.85rem;display:flex;align-items:center;justify-content:space-between;}
+.meal-day-hdr.today{background:var(--teal);}
+.meal-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);}
+.meal-row:last-child{border-bottom:none;}
+.meal-type{font-size:0.65rem;font-weight:900;text-transform:uppercase;color:var(--muted);width:64px;flex-shrink:0;}
+.meal-items{flex:1;font-size:0.88rem;font-weight:700;}
+.meal-add-btn{font-size:0.7rem;color:var(--blue);background:none;border:1px dashed var(--border);border-radius:6px;padding:3px 8px;cursor:pointer;font-family:'Nunito',sans-serif;font-weight:800;}
 
-.progress-bar-wrap{background:var(--bg);border-radius:20px;height:10px;overflow:hidden;margin:8px 0;}
-.progress-bar{background:linear-gradient(90deg,var(--blue),var(--teal));height:100%;border-radius:20px;transition:width 0.3s ease;width:0%;}
+/* PIN overlay */
+.pin-overlay{display:none;position:fixed;inset:0;z-index:500;background:rgba(10,10,26,0.88);backdrop-filter:blur(8px);flex-direction:column;align-items:center;justify-content:center;}
+.pin-overlay.open{display:flex;}
+.pin-box{background:var(--card);border-radius:24px;padding:28px 24px;width:min(300px,90vw);text-align:center;}
 
-/* Drive status */
-.drive-status{font-size:0.78rem;font-weight:800;padding:10px 14px;border-radius:10px;margin-bottom:12px;text-align:center;}
-.ds-ok{background:var(--teal-l);color:var(--teal);}
-.ds-err{background:var(--red-l);color:var(--red);}
-.ds-loading{background:var(--amber-l);color:#92400E;}
-
-.sync-status{font-size:0.72rem;font-weight:800;padding:8px 12px;border-radius:10px;margin-bottom:12px;text-align:center;}
-.sync-ok{background:var(--teal-l);color:var(--teal);}
-.sync-err{background:var(--red-l);color:var(--red);}
-.sync-loading{background:var(--amber-l);color:#92400E;}
-
-.empty-state{text-align:center;padding:32px;color:var(--muted);font-size:0.85rem;font-weight:700;font-style:italic;}
-
-#pinScreen{position:fixed;inset:0;background:var(--bg);z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;}
-.pin-brand{font-family:'Fredoka One',cursive;font-size:1.8rem;background:linear-gradient(135deg,var(--blue),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px;}
-.pin-sub{font-size:0.78rem;font-weight:700;color:var(--muted);margin-bottom:32px;}
-.pin-dots{display:flex;gap:14px;margin-bottom:28px;}
-.pin-dot{width:16px;height:16px;border-radius:50%;border:2.5px solid var(--border);background:transparent;transition:all 0.15s;}
-.pin-dot.filled{background:var(--blue);border-color:var(--blue);}
-.pin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;width:100%;max-width:280px;}
-.pin-key{background:var(--card);border:none;border-radius:14px;padding:18px;font-family:'Fredoka One',cursive;font-size:1.5rem;cursor:pointer;box-shadow:var(--shadow);color:var(--ink);}
-.pin-key:active{transform:scale(0.94);background:var(--blue-l);}
-.pin-error{color:var(--red);font-size:0.78rem;font-weight:800;margin-top:12px;min-height:20px;}
-
-.spinner{display:inline-block;width:16px;height:16px;border:2.5px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin 0.7s linear infinite;vertical-align:middle;}
+/* Misc */
+.empty-hint{text-align:center;padding:20px;font-size:0.82rem;color:var(--muted);font-weight:700;font-style:italic;}
+.spinner{display:inline-block;width:14px;height:14px;border:2.5px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin 0.7s linear infinite;vertical-align:middle;}
 @keyframes spin{to{transform:rotate(360deg)}}
+.badge{font-size:0.62rem;font-weight:900;padding:2px 7px;border-radius:20px;}
+.badge-pos{background:var(--teal-l);color:var(--teal);}
+.badge-neg{background:var(--red-l);color:var(--red);}
 </style>
 </head>
 <body>
+<div class="app">
 
-<!-- PIN -->
-<div id="pinScreen">
-  <div class="pin-brand">🏠 Family Hub</div>
-  <div class="pin-sub">Enter PIN to continue</div>
-  <div class="pin-dots">
-    <div class="pin-dot" id="pd0"></div><div class="pin-dot" id="pd1"></div>
-    <div class="pin-dot" id="pd2"></div><div class="pin-dot" id="pd3"></div>
-  </div>
-  <div class="pin-grid">
-    <button class="pin-key" onclick="pinKey('1')">1</button>
-    <button class="pin-key" onclick="pinKey('2')">2</button>
-    <button class="pin-key" onclick="pinKey('3')">3</button>
-    <button class="pin-key" onclick="pinKey('4')">4</button>
-    <button class="pin-key" onclick="pinKey('5')">5</button>
-    <button class="pin-key" onclick="pinKey('6')">6</button>
-    <button class="pin-key" onclick="pinKey('7')">7</button>
-    <button class="pin-key" onclick="pinKey('8')">8</button>
-    <button class="pin-key" onclick="pinKey('9')">9</button>
-    <button class="pin-key" onclick="pinBackspace()" style="font-size:1rem">⌫</button>
-    <button class="pin-key" onclick="pinKey('0')">0</button>
-    <button class="pin-key" onclick="unlockApp()" style="font-size:0.65rem;color:var(--muted)">Skip</button>
-  </div>
-  <div class="pin-error" id="pinError"></div>
-</div>
-
-<!-- APP -->
-<div id="appShell" style="display:none">
+  <!-- TOPBAR -->
   <div class="topbar">
-    <div class="topbar-row">
-      <div>
-        <div class="topbar-brand">🏠 Family Hub</div>
-        <div class="topbar-sub">Mobile Companion</div>
-      </div>
-      <div id="driveConnectStatus" style="font-size:0.7rem;font-weight:800;color:var(--muted)">Not connected</div>
+    <div class="topbar-logo">🏠</div>
+    <div>
+      <div class="topbar-title">Family Hub</div>
+      <div class="topbar-sub">Mobile Companion</div>
     </div>
+    <div id="syncStatus" style="font-size:0.68rem;font-weight:800;color:var(--muted)"></div>
   </div>
 
-  <!-- GROCERY VIEW -->
-  <div class="view active" id="view-grocery">
+  <!-- VIEWS -->
+  <div class="views">
 
-    <!-- Saved lists -->
-    <div class="card">
-      <div class="card-title">📋 Saved Lists</div>
-      <div id="savedListsContainer"><div class="empty-state">No saved lists yet</div></div>
-      <button class="btn btn-ghost btn-sm" onclick="showNewListPanel()" style="margin-top:8px;width:100%">+ Start New List</button>
+    <!-- GROCERY -->
+    <div class="view active" id="view-grocery">
+      <div id="shoppingModeBar" style="display:none"></div>
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <button class="btn btn-success btn-sm" id="shoppingModeBtn" onclick="toggleShoppingMode()" style="flex:1">🛒 Shopping Mode</button>
+        <button class="btn btn-ghost btn-sm" id="savedListsBtn" onclick="showSavedLists()" style="flex:1">📋 Saved Lists</button>
+      </div>
+      <!-- Store filter -->
+      <div style="display:flex;gap:6px;margin-bottom:12px">
+        <button class="btn btn-ghost btn-sm" id="gf-all" onclick="filterG('all',this)" style="flex:1;background:var(--blue);color:white">All</button>
+        <button class="btn btn-ghost btn-sm" id="gf-tj" onclick="filterG('tj',this)" style="flex:1">🛍 TJ's</button>
+        <button class="btn btn-ghost btn-sm" id="gf-co" onclick="filterG('co',this)" style="flex:1">🏪 Costco</button>
+      </div>
+      <div id="groceryList"></div>
+      <!-- Add item -->
+      <div class="card" style="position:sticky;bottom:80px">
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <input class="text-input" id="newItemName" placeholder="Add item…" style="flex:1">
+          <input class="text-input" id="newItemQty" type="number" min="1" value="1" style="width:56px;text-align:center">
+        </div>
+        <div style="display:flex;gap:6px">
+          <button id="pick-tj" onclick="setNewStore('tj',this)" style="flex:1.3;display:flex;align-items:center;justify-content:center;gap:5px;border:2px solid var(--tj);border-radius:20px;padding:7px;cursor:pointer;font-family:Nunito,sans-serif;font-size:0.78rem;font-weight:800;background:#FFF0F0;color:var(--tj)">
+            <div style="width:20px;height:20px;border-radius:50%;background:var(--tj);display:flex;align-items:center;justify-content:center"><svg width="12" height="12" viewBox="0 0 12 12"><text x="6" y="9.5" text-anchor="middle" font-family="Georgia,serif" font-size="7.5" font-weight="bold" fill="white">TJ</text></svg></div>TJ's
+          </button>
+          <button id="pick-co" onclick="setNewStore('co',this)" style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;border:2px solid var(--border);border-radius:20px;padding:7px;cursor:pointer;font-family:Nunito,sans-serif;font-size:0.78rem;font-weight:800;background:white;color:var(--muted)">
+            <div style="width:20px;height:20px;border-radius:50%;background:#bbb;display:flex;align-items:center;justify-content:center"><svg width="12" height="12" viewBox="0 0 12 12"><text x="6" y="9.5" text-anchor="middle" font-family="Arial,sans-serif" font-size="6.5" font-weight="bold" fill="white">CO</text></svg></div>Costco
+          </button>
+          <button class="btn btn-success btn-sm" onclick="addGroceryItem()" style="border-radius:20px;padding:7px 16px">+ Add</button>
+        </div>
+      </div>
     </div>
 
-    <!-- Active list -->
-    <div id="activeListPanel" style="display:none">
+    <!-- TALLY -->
+    <div class="view" id="view-tally">
       <div class="card">
-        <div class="card-title">
-          🛒 <span id="activeListName">Shopping List</span>
-          <button class="btn btn-amber btn-sm" onclick="saveActiveList()" style="margin-left:auto">💾 Save</button>
-        </div>
-        <div class="sync-status sync-loading" id="grocerySyncStatus">⏳ Loading…</div>
-
-        <div class="store-filter-row">
-          <button class="store-chip active-all" id="chip-all" onclick="filterGrocery('all',this)">All</button>
-          <button class="store-chip" id="chip-tj" onclick="filterGrocery('tj',this)">🛍 TJ's</button>
-          <button class="store-chip" id="chip-co" onclick="filterGrocery('co',this)">🏪 Costco</button>
-        </div>
-
-        <div id="groceryList"></div>
-
-        <!-- Add item -->
-        <div style="margin-top:14px;padding-top:14px;border-top:1px dashed var(--border)">
-          <input class="form-input" id="newItemName" placeholder="Add item…" onkeydown="if(event.key==='Enter')addMobileGroceryItem()">
-          <div class="store-pick-row">
-            <button class="store-pick-btn tj-active" id="mpick-tj" onclick="setMobileStore('tj',this)" style="flex:1.4">🛍 Trader Joe's</button>
-            <button class="store-pick-btn" id="mpick-co" onclick="setMobileStore('co',this)">🏪 Costco</button>
-          </div>
-          <button class="btn btn-success" onclick="addMobileGroceryItem()">+ Add Item</button>
-        </div>
+        <div class="card-title"><div class="card-icon" style="background:var(--coral-l)">🔊</div>Yelling Tally</div>
+        <div id="yellRows"></div>
+        <button onclick="resetYelling()" style="margin-top:10px;background:none;border:none;font-size:0.78rem;color:var(--muted);cursor:pointer;font-family:Nunito,sans-serif;font-weight:800">↺ Reset All</button>
       </div>
-
-      <button class="btn btn-ghost" onclick="clearChecked()">🗑 Clear Checked Items</button>
+      <div class="card">
+        <div class="card-title"><div class="card-icon" style="background:var(--amber-l)">⭐</div>Emma This Week</div>
+        <div id="tallySummary"></div>
+      </div>
     </div>
 
-  </div>
-
-  <!-- MEDIA VIEW -->
-  <div class="view" id="view-media">
-
-    <!-- Drive connect -->
-    <div class="card" id="driveConnectCard">
-      <div class="card-title">☁️ Google Drive</div>
-      <p style="font-size:0.82rem;color:var(--muted);font-weight:700;margin-bottom:14px">Connect to sync photos and videos to the kitchen screensaver.</p>
-      <button class="btn btn-primary" onclick="connectDrive()">🔗 Connect Google Drive</button>
-      <div id="driveStatus" class="drive-status ds-loading" style="display:none"></div>
+    <!-- EMMA -->
+    <div class="view" id="view-emma">
+      <div class="card">
+        <div class="card-title"><div class="card-icon" style="background:var(--amber-l)">🌟</div>Star Board
+          <span style="font-size:0.65rem;color:var(--muted);font-weight:700;margin-left:auto">PIN required</span>
+        </div>
+        <div id="starRows"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding-top:10px;border-top:1px solid var(--border);margin-top:8px">
+          <span style="font-size:0.82rem;font-weight:800;color:var(--muted)">Total stars this week</span>
+          <span id="totalStarsM" style="font-family:'Fredoka One',cursive;font-size:1.4rem;color:var(--amber)">0</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title"><div class="card-icon" style="background:var(--gold-l)">✨</div>Spark Jar
+          <span id="sparkCountM" style="font-family:'Fredoka One',cursive;font-size:1.3rem;color:var(--amber);margin-left:auto">0</span>
+        </div>
+        <div style="display:flex;gap:10px">
+          <button class="btn btn-ghost btn-sm" onclick="adjSpark(-1)" style="flex:1">− Remove</button>
+          <button class="btn btn-amber btn-sm" onclick="adjSpark(1)" style="flex:1">✨ Add Spark</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title"><div class="card-icon" style="background:var(--purple-l)">📝</div>Log Behavior</div>
+        <div style="display:flex;gap:8px;margin-bottom:10px">
+          <button class="btn btn-success btn-sm" id="beh-pos" onclick="setBehType('pos',this)" style="flex:1">✅ Positive</button>
+          <button class="btn btn-ghost btn-sm" id="beh-neg" onclick="setBehType('neg',this)" style="flex:1">⚠️ Needs Work</button>
+        </div>
+        <input class="text-input" id="behText" placeholder="What happened…" style="margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+          <button onclick="adjBehPts(-1)" class="btn btn-ghost btn-sm" style="width:34px;height:34px;padding:0;border-radius:50%;justify-content:center">−</button>
+          <span id="behPtsM" style="font-family:'Fredoka One',cursive;font-size:1.5rem;color:var(--amber);min-width:30px;text-align:center">1</span>
+          <button onclick="adjBehPts(1)" class="btn btn-amber btn-sm" style="width:34px;height:34px;padding:0;border-radius:50%;justify-content:center">+</button>
+          <span style="font-size:0.78rem;color:var(--muted);font-weight:700">pts</span>
+        </div>
+        <button class="btn btn-primary btn-full" onclick="saveBehavior()">💾 Save</button>
+      </div>
     </div>
 
-    <!-- Upload -->
-    <div class="card">
-      <div class="card-title">📤 Upload Media</div>
-      <div class="upload-zone" onclick="document.getElementById('mediaFileInput').click()">
-        <div class="upload-icon">📷</div>
-        <div class="upload-text">Tap to take photo/video or choose from library</div>
-        <div class="upload-sub">Photos & videos up to 2 minutes</div>
-      </div>
-      <input type="file" id="mediaFileInput" accept="image/*,video/*" multiple onchange="handleMediaSelect(this)">
-
-      <div id="pendingMediaGrid" class="media-grid"></div>
-      <div id="uploadProgress" style="display:none">
-        <div class="progress-bar-wrap"><div class="progress-bar" id="progressBar"></div></div>
-        <div id="uploadProgressText" style="font-size:0.72rem;font-weight:800;color:var(--muted);text-align:center"></div>
-      </div>
-      <button class="btn btn-primary" id="uploadBtn" onclick="uploadToDrive()" style="display:none">📤 Upload to Kitchen Hub</button>
+    <!-- MEALS -->
+    <div class="view" id="view-meals">
+      <div id="mealsView"></div>
     </div>
 
-    <!-- Current media -->
-    <div class="card">
-      <div class="card-title">🖼 Kitchen Screensaver</div>
-      <div id="driveMediaStatus" style="font-size:0.78rem;font-weight:700;color:var(--muted);margin-bottom:10px">Connect Drive to see current media</div>
-      <div class="media-grid" id="driveMediaGrid"></div>
+    <!-- PHOTOS -->
+    <div class="view" id="view-photos">
+      <div class="card">
+        <div class="card-title"><div class="card-icon" style="background:var(--blue-l)">📸</div>Upload Photos</div>
+        <p style="font-size:0.8rem;color:var(--muted);font-weight:700;margin-bottom:12px">Photos appear on the iPad screensaver automatically.</p>
+        <div class="upload-zone" onclick="document.getElementById('photoInput').click()">
+          <div style="font-size:2.5rem;margin-bottom:8px">📷</div>
+          <div style="font-size:0.9rem;font-weight:800;color:var(--ink)">Tap to upload photos</div>
+          <div style="font-size:0.75rem;color:var(--muted);font-weight:700;margin-top:4px">Camera or photo library</div>
+        </div>
+        <input type="file" id="photoInput" accept="image/*" multiple capture style="display:none" onchange="uploadPhotos(this)">
+        <div id="uploadProgress" style="margin-top:10px"></div>
+        <div id="uploadedPhotos" class="photo-grid" style="margin-top:10px"></div>
+        <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+          <div style="font-size:0.7rem;font-weight:800;color:var(--muted);margin-bottom:6px">Drive Status</div>
+          <button class="btn btn-ghost btn-sm btn-full" id="driveBtn" onclick="connectDrive()">🔗 Connect Google Drive</button>
+          <div id="driveStatus" style="font-size:0.7rem;color:var(--muted);font-weight:700;margin-top:6px;text-align:center"></div>
+        </div>
+      </div>
     </div>
 
   </div>
 
   <!-- TAB BAR -->
-    <!-- TALLY VIEW -->
-  <div class="view" id="view-tally">
-    <div class="card" style="margin-bottom:14px">
-      <div class="card-title">🔊 Yelling Tally</div>
-      <div id="m-yell-rows" style="margin:10px 0"></div>
-      <button onclick="resetMYelling()" style="background:none;border:none;font-size:0.78rem;color:var(--muted);cursor:pointer;font-family:Nunito,sans-serif;font-weight:800;margin-top:4px">↺ Reset All</button>
-    </div>
-    <div class="card">
-      <div class="card-title">⭐ Emma This Week</div>
-      <div id="m-tally-summary" style="margin:8px 0"></div>
-    </div>
-  </div>
-
-  <!-- WINS VIEW -->
-  <div class="view" id="view-wins">
-    <div class="card" style="margin-bottom:14px">
-      <div class="card-title">🌟 Emma's Stars</div>
-      <div id="m-star-cats" style="margin:8px 0"></div>
-      <div style="display:flex;align-items:center;justify-content:space-between;padding-top:8px;border-top:1px solid var(--border);margin-top:6px">
-        <span style="font-size:0.8rem;font-weight:800;color:var(--muted)">Total stars</span>
-        <span id="m-total-stars" style="font-size:1.4rem;color:var(--amber);font-weight:900">0</span>
-      </div>
-    </div>
-    <div class="card" style="margin-bottom:14px">
-      <div class="card-title">✨ Spark Jar</div>
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0">
-        <span id="m-sparks" style="font-size:2rem;color:var(--amber);font-weight:900">0</span>
-        <div style="display:flex;gap:8px">
-          <button class="btn btn-ghost btn-sm" onclick="mAdjSpark(-1)">−</button>
-          <button class="btn btn-amber btn-sm" onclick="mAdjSpark(1)">✨ Add</button>
-        </div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-title">📝 Log Behavior</div>
-      <div style="display:flex;gap:8px;margin-bottom:10px">
-        <button class="btn btn-success btn-sm" id="m-beh-pos" onclick="setMBehType('pos',this)" style="flex:1">✅ Positive</button>
-        <button class="btn btn-ghost btn-sm" id="m-beh-neg" onclick="setMBehType('neg',this)" style="flex:1">⚠️ Needs Work</button>
-      </div>
-      <input class="text-input" id="m-beh-text" placeholder="What happened…" style="margin-bottom:8px;width:100%">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-        <button onclick="adjMBehPts(-1)" class="btn btn-ghost btn-sm" style="width:32px;height:32px;padding:0;border-radius:50%;justify-content:center">−</button>
-        <span id="m-beh-pts" style="font-size:1.4rem;color:var(--amber);font-weight:900;min-width:28px;text-align:center">1</span>
-        <button onclick="adjMBehPts(1)" class="btn btn-amber btn-sm" style="width:32px;height:32px;padding:0;border-radius:50%;justify-content:center">+</button>
-        <span style="font-size:0.75rem;color:var(--muted);font-weight:700">pts</span>
-      </div>
-      <button class="btn btn-primary btn-sm" onclick="saveMBehavior()" style="width:100%">💾 Save</button>
-    </div>
-  </div>
-
   <div class="tab-bar">
-    <button class="tab-item active" id="tab-grocery" onclick="switchTab('grocery',this)">
-      <div class="tab-icon">🛒</div>
-      <div class="tab-label">Grocery</div>
+    <button class="tab-btn active" id="tab-grocery" onclick="switchTab('grocery',this)">
+      <div class="tab-icon">🛒</div><div class="tab-label">Grocery</div>
     </button>
-    <button class="tab-item" id="tab-tally" onclick="switchTab('tally',this)">
-      <div class="tab-icon">🔊</div>
-      <div class="tab-label">Tally</div>
+    <button class="tab-btn" id="tab-tally" onclick="switchTab('tally',this)">
+      <div class="tab-icon">🔊</div><div class="tab-label">Tally</div>
     </button>
-    <button class="tab-item" id="tab-wins" onclick="switchTab('wins',this)">
-      <div class="tab-icon">⭐</div>
-      <div class="tab-label">Emma</div>
+    <button class="tab-btn" id="tab-emma" onclick="switchTab('emma',this)">
+      <div class="tab-icon">⭐</div><div class="tab-label">Emma</div>
     </button>
-    <button class="tab-item" id="tab-media" onclick="switchTab('media',this)">
-      <div class="tab-icon">📸</div>
-      <div class="tab-label">Photos</div>
+    <button class="tab-btn" id="tab-meals" onclick="switchTab('meals',this)">
+      <div class="tab-icon">🍽</div><div class="tab-label">Meals</div>
+    </button>
+    <button class="tab-btn" id="tab-photos" onclick="switchTab('photos',this)">
+      <div class="tab-icon">📸</div><div class="tab-label">Photos</div>
     </button>
   </div>
 
 </div>
 
+<!-- PIN OVERLAY -->
+<div class="pin-overlay" id="pinOverlay">
+  <div class="pin-box">
+    <div style="font-family:'DM Serif Display',serif;font-size:1.2rem;margin-bottom:6px">🔐 Parent Access</div>
+    <div style="font-size:0.75rem;color:var(--muted);font-weight:700;margin-bottom:16px">Enter PIN to continue</div>
+    <div style="display:flex;justify-content:center;gap:10px;margin-bottom:16px">
+      <div style="width:14px;height:14px;border-radius:50%;border:2px solid var(--border);background:transparent;transition:all 0.15s" id="mpd0"></div>
+      <div style="width:14px;height:14px;border-radius:50%;border:2px solid var(--border);background:transparent;transition:all 0.15s" id="mpd1"></div>
+      <div style="width:14px;height:14px;border-radius:50%;border:2px solid var(--border);background:transparent;transition:all 0.15s" id="mpd2"></div>
+      <div style="width:14px;height:14px;border-radius:50%;border:2px solid var(--border);background:transparent;transition:all 0.15s" id="mpd3"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+      <button class="btn btn-ghost" onclick="mPinKey('1')" style="padding:14px;font-size:1.2rem;font-family:'Fredoka One',cursive">1</button>
+      <button class="btn btn-ghost" onclick="mPinKey('2')" style="padding:14px;font-size:1.2rem;font-family:'Fredoka One',cursive">2</button>
+      <button class="btn btn-ghost" onclick="mPinKey('3')" style="padding:14px;font-size:1.2rem;font-family:'Fredoka One',cursive">3</button>
+      <button class="btn btn-ghost" onclick="mPinKey('4')" style="padding:14px;font-size:1.2rem;font-family:'Fredoka One',cursive">4</button>
+      <button class="btn btn-ghost" onclick="mPinKey('5')" style="padding:14px;font-size:1.2rem;font-family:'Fredoka One',cursive">5</button>
+      <button class="btn btn-ghost" onclick="mPinKey('6')" style="padding:14px;font-size:1.2rem;font-family:'Fredoka One',cursive">6</button>
+      <button class="btn btn-ghost" onclick="mPinKey('7')" style="padding:14px;font-size:1.2rem;font-family:'Fredoka One',cursive">7</button>
+      <button class="btn btn-ghost" onclick="mPinKey('8')" style="padding:14px;font-size:1.2rem;font-family:'Fredoka One',cursive">8</button>
+      <button class="btn btn-ghost" onclick="mPinKey('9')" style="padding:14px;font-size:1.2rem;font-family:'Fredoka One',cursive">9</button>
+      <button class="btn btn-ghost" onclick="mPinCancel()" style="padding:14px;font-size:0.75rem;font-weight:800">Cancel</button>
+      <button class="btn btn-ghost" onclick="mPinKey('0')" style="padding:14px;font-size:1.2rem;font-family:'Fredoka One',cursive">0</button>
+      <button class="btn btn-ghost" onclick="mPinBack()" style="padding:14px;font-size:1.1rem">⌫</button>
+    </div>
+    <div id="mPinError" style="color:var(--red);font-size:0.75rem;font-weight:800;margin-top:10px;min-height:18px;text-align:center"></div>
+  </div>
+</div>
+
 <script>
-// ── CONFIG ────────────────────────────────────────────────────
-var SHEET_ID = '1kbW4EcYvt6gu-st1tWY4G9QpCa3KvGPq2EtCWxeur1M';
+// ── SHARED DATA ───────────────────────────────────────────────
+var SHEET_ID = localStorage.getItem('sheetId') || '1kbW4EcYvt6gu-st1tWY4G9QpCa3KvGPq2EtCWxeur1M';
+var WEB_APP_URL = localStorage.getItem('webAppUrl') || 'https://script.google.com/macros/s/AKfycbxnRDiwIZsuM0luD_L5syB1YxP7UVrK2rR7t81reuMD0Z8pLui6FeO6Ne4haY76YDXt/exec';
 var DRIVE_FOLDER_ID = '1VrGefC8FXO5-E7P8ree44DgQz2RGslom';
-var PHOTOS_CLIENT_ID = '801480570402-brbo6se67g4g8kbckijlbbmffkb13u2s.apps.googleusercontent.com';
 var USER_PIN = localStorage.getItem('userPin') || '1234';
 var driveToken = '';
-var WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+var driveClient = null;
+var PHOTOS_CLIENT_ID = '801480570402-brbo6se67g4g8kbckijlbbmffkb13u2s.apps.googleusercontent.com';
+
+// ── TAB SWITCHING ─────────────────────────────────────────────
+function switchTab(name, btn) {
+  document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('active'); });
+  document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+  document.getElementById('view-'+name).classList.add('active');
+  btn.classList.add('active');
+  if(name==='tally') renderTally();
+  if(name==='emma') requirePin(renderEmma);
+  if(name==='meals') renderMeals();
+  if(name==='grocery') renderGrocery();
+}
 
 // ── PIN ───────────────────────────────────────────────────────
-var pinBuf = '';
-function pinKey(d){
-  if(pinBuf.length>=4) return;
-  pinBuf+=d; updatePinDots();
-  if(pinBuf.length===4){
-    if(pinBuf===USER_PIN){ unlockApp(); }
-    else{
-      document.getElementById('pinError').textContent='❌ Incorrect PIN';
-      setTimeout(function(){ pinBuf=''; updatePinDots(); document.getElementById('pinError').textContent=''; },1000);
+var mPinBuf = '', mPinCb = null, mPinVerified = false;
+function requirePin(cb) {
+  if(mPinVerified){ cb(); return; }
+  mPinBuf=''; mPinCb=cb;
+  document.getElementById('pinOverlay').classList.add('open');
+  updateMPinDots();
+  document.getElementById('mPinError').textContent='';
+}
+function mPinKey(d) {
+  if(mPinBuf.length>=4) return;
+  mPinBuf+=d; updateMPinDots();
+  if(mPinBuf.length===4){
+    if(mPinBuf===USER_PIN){
+      mPinVerified=true;
+      document.getElementById('pinOverlay').classList.remove('open');
+      if(mPinCb) mPinCb();
+    } else {
+      document.getElementById('mPinError').textContent='❌ Wrong PIN';
+      setTimeout(function(){ mPinBuf=''; updateMPinDots(); document.getElementById('mPinError').textContent=''; },800);
     }
   }
 }
-function pinBackspace(){ pinBuf=pinBuf.slice(0,-1); updatePinDots(); }
-function updatePinDots(){
-  for(var i=0;i<4;i++) document.getElementById('pd'+i).classList.toggle('filled',i<pinBuf.length);
-}
-function unlockApp(){
-  document.getElementById('pinScreen').style.display='none';
-  document.getElementById('appShell').style.display='block';
-  loadSavedLists();
-  cleanOldLists();
+function mPinBack(){ mPinBuf=mPinBuf.slice(0,-1); updateMPinDots(); }
+function mPinCancel(){ document.getElementById('pinOverlay').classList.remove('open'); }
+function updateMPinDots(){
+  for(var i=0;i<4;i++){
+    var d=document.getElementById('mpd'+i);
+    if(d){ d.style.background=i<mPinBuf.length?'var(--blue)':'transparent'; d.style.borderColor=i<mPinBuf.length?'var(--blue)':'var(--border)'; }
+  }
 }
 
-// ── TABS ──────────────────────────────────────────────────────
-function switchTab(name,btn){
-  document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('active'); });
-  document.querySelectorAll('.tab-item').forEach(function(b){ b.classList.remove('active'); });
-  document.getElementById('view-'+name).classList.add('active');
-  btn.classList.add('active');
-}
-
-// ── GROCERY LISTS ─────────────────────────────────────────────
-var savedLists = [];
-var activeList = null;
+// ── GROCERY ───────────────────────────────────────────────────
 var groceryItems = [];
-var gFilter = 'all', mNewStore = 'tj';
+var savedLists = [];
+var activeListIdx = null;
+var gFilter = 'all';
+var newStore = 'tj';
+var shoppingMode = false;
 
 try{ savedLists = JSON.parse(localStorage.getItem('savedGroceryLists')||'[]'); }catch(e){}
 
-function getWeekKey(){ return new Date().toISOString().substring(0,10); }
+var GROCERY_MASTER = [
+  {name:'Milk',store:'tj'},{name:'Eggs (dozen)',store:'co'},{name:'Bread',store:'tj'},
+  {name:'Butter',store:'co'},{name:'Chicken breasts',store:'co'},{name:'Ground beef',store:'co'},
+  {name:'Pasta',store:'tj'},{name:'Marinara sauce',store:'tj'},{name:'Rice',store:'co'},
+  {name:'Olive oil',store:'co'},{name:'Cheddar cheese',store:'tj'},{name:'Yogurt',store:'tj'},
+  {name:'Orange juice',store:'tj'},{name:'Apple juice boxes',store:'co'},{name:'Baby carrots',store:'tj'},
+  {name:'Broccoli',store:'tj'},{name:'Bananas',store:'tj'},{name:'Apples',store:'tj'},
+  {name:'Cereal',store:'co'},{name:'Granola bars',store:'co'},{name:'Crackers',store:'co'},
+  {name:'Peanut butter',store:'co'},{name:'Jelly',store:'tj'},{name:'Frozen pizza',store:'co'},
+  {name:'Fish sticks',store:'tj'},{name:'Mac & cheese',store:'tj'},{name:'Dish soap',store:'co'},
+  {name:'Paper towels',store:'co'},
+];
 
-function cleanOldLists(){
-  var now = Date.now();
-  savedLists = savedLists.filter(function(list){
-    return !list.savedAt || (now - list.savedAt) < WEEK_MS;
-  });
-  localStorage.setItem('savedGroceryLists', JSON.stringify(savedLists));
-  loadSavedLists();
+function initGrocery(){
+  // Load most recent saved list or start fresh from master
+  if(savedLists.length){
+    // Load most recent starred, else most recent
+    var starred = savedLists.filter(function(l){ return l.starred; });
+    var src = starred.length ? starred[starred.length-1] : savedLists[savedLists.length-1];
+    activeListIdx = savedLists.indexOf(src);
+    groceryItems = JSON.parse(JSON.stringify(src.items));
+  } else {
+    groceryItems = GROCERY_MASTER.map(function(i){ return {name:i.name,store:i.store,qty:0,notes:[],checked:false}; });
+  }
+  renderGrocery();
 }
 
-function loadSavedLists(){
-  var container = document.getElementById('savedListsContainer');
-  if(!savedLists.length){
-    container.innerHTML = '<div class="empty-state">No saved lists yet</div>';
+function filterG(store, btn){
+  gFilter = store;
+  document.querySelectorAll('[id^="gf-"]').forEach(function(b){ b.style.background='var(--bg)'; b.style.color='var(--soft)'; });
+  btn.style.background='var(--blue)'; btn.style.color='white';
+  renderGrocery();
+}
+
+function setNewStore(store, btn){
+  newStore = store;
+  var tj=document.getElementById('pick-tj'), co=document.getElementById('pick-co');
+  tj.style.borderColor=store==='tj'?'var(--tj)':'var(--border)';
+  tj.style.background=store==='tj'?'#FFF0F0':'white';
+  tj.style.color=store==='tj'?'var(--tj)':'var(--muted)';
+  tj.querySelector('div').style.background=store==='tj'?'var(--tj)':'#bbb';
+  co.style.borderColor=store==='co'?'var(--co)':'var(--border)';
+  co.style.background=store==='co'?'#EEF4FF':'white';
+  co.style.color=store==='co'?'var(--co)':'var(--muted)';
+  co.querySelector('div').style.background=store==='co'?'var(--co)':'#bbb';
+}
+
+function renderGrocery(){
+  var list = document.getElementById('groceryList');
+  if(!list) return;
+  var filtered = gFilter==='all' ? groceryItems : groceryItems.filter(function(i){ return i.store===gFilter; });
+
+  if(shoppingMode){
+    // Shopping mode: only show qty>0, sorted by store
+    var active = filtered.filter(function(i){ return i.qty>0; });
+    var tj = active.filter(function(i){ return i.store==='tj'; });
+    var co = active.filter(function(i){ return i.store==='co'; });
+    var checked = filtered.filter(function(i){ return i.qty>0 && i.checked; }).length;
+    var total = active.length;
+
+    list.innerHTML='';
+    // Progress
+    var bar = document.getElementById('shoppingModeBar');
+    bar.style.display='block';
+    bar.innerHTML='<div class="shopping-header">'
+      +'<div><div style="font-size:1rem;font-weight:900">🛒 Shopping Mode</div><div class="shopping-progress">'+checked+' of '+total+' grabbed</div></div>'
+      +'<div style="background:rgba(255,255,255,0.25);border-radius:20px;padding:4px 10px;font-size:0.78rem;font-weight:800">'+(total-checked)+' left</div>'
+    +'</div>';
+
+    if(!active.length){ list.innerHTML='<div class="empty-hint">No items selected — go back and set quantities!</div>'; return; }
+
+    if(tj.length){
+      var tjHdr=document.createElement('div'); tjHdr.className='store-section-hdr';
+      tjHdr.innerHTML='<div style="width:22px;height:22px;border-radius:50%;background:var(--tj);display:flex;align-items:center;justify-content:center"><svg width="12" height="12" viewBox="0 0 12 12"><text x="6" y="9.5" text-anchor="middle" font-family="Georgia,serif" font-size="7.5" font-weight="bold" fill="white">TJ</text></svg></div> Trader Joe\'s';
+      list.appendChild(tjHdr);
+      tj.forEach(function(item){ list.appendChild(makeShoppingItem(item)); });
+    }
+    if(co.length){
+      var coHdr=document.createElement('div'); coHdr.className='store-section-hdr'; coHdr.style.marginTop='8px';
+      coHdr.innerHTML='<div style="width:22px;height:22px;border-radius:50%;background:var(--co);display:flex;align-items:center;justify-content:center"><svg width="12" height="12" viewBox="0 0 12 12"><text x="6" y="9.5" text-anchor="middle" font-family="Arial,sans-serif" font-size="6.5" font-weight="bold" fill="white">CO</text></svg></div> Costco';
+      list.appendChild(coHdr);
+      co.forEach(function(item){ list.appendChild(makeShoppingItem(item)); });
+    }
     return;
   }
-  container.innerHTML = '';
-  // Sort: starred first, then by date
-  var sorted = savedLists.map(function(l,i){ return {list:l,idx:i}; });
-  sorted.sort(function(a,b){ return (b.list.starred?1:0)-(a.list.starred?1:0)||(b.list.savedAt-a.list.savedAt); });
-  sorted.forEach(function(entry){
-    var list=entry.list, idx=entry.idx;
-    var itemCount = list.items.filter(function(i){ return i.qty > 0; }).length;
-    var checkedCount = list.items.filter(function(i){ return i.checked; }).length;
-    var isStarred = list.starred || false;
-    var div = document.createElement('div');
-    div.className = 'saved-list-item';
-    div.style.border = isStarred ? '2px solid var(--amber)' : '';
-    div.style.background = isStarred ? 'var(--amber-l,#FFFBEB)' : '';
-    div.innerHTML =
-      '<div class="saved-list-info">'
-        +'<div class="saved-list-date">'+(isStarred?'⭐':'📋')+' '+list.name+'</div>'
-        +'<div class="saved-list-count">'+itemCount+' items · '+checkedCount+' checked · '+new Date(list.savedAt).toLocaleDateString('en-US',{month:'short',day:'numeric'})+'</div>'
-      +'</div>'
-      +'<div class="saved-list-actions">'
-        +'<button class="btn btn-primary btn-sm" onclick="loadList('+idx+')">Open</button>'
-        +'<button class="btn btn-ghost btn-sm" onclick="deleteList('+idx+')" style="color:var(--red)">✕</button>'
-      +'</div>';
-    container.appendChild(div);
-  });
-}
 
-function showNewListPanel(){
-  // Load master list from sheet as starting point
-  activeList = null;
-  document.getElementById('activeListPanel').style.display = 'block';
-  document.getElementById('activeListName').textContent = 'New List — ' + new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'});
-  setSyncStatus('loading','⏳ Loading master list…');
-  loadMasterList();
-}
-
-function loadList(idx){
-  activeList = idx;
-  var list = savedLists[idx];
-  groceryItems = JSON.parse(JSON.stringify(list.items)); // deep copy
-  document.getElementById('activeListName').textContent = list.name;
-  document.getElementById('activeListPanel').style.display = 'block';
-  setSyncStatus('ok','✅ List loaded — '+groceryItems.length+' items');
-  renderGroceryList();
-}
-
-function deleteList(idx){
-  if(!confirm('Delete this list?')) return;
-  savedLists.splice(idx,1);
-  localStorage.setItem('savedGroceryLists', JSON.stringify(savedLists));
-  loadSavedLists();
-}
-
-function saveActiveList(){
-  var name = document.getElementById('activeListName').textContent;
-  var listObj = {
-    name: name,
-    savedAt: Date.now(),
-    items: JSON.parse(JSON.stringify(groceryItems))
-  };
-  if(activeList !== null){
-    savedLists[activeList] = listObj;
-  } else {
-    savedLists.push(listObj);
-    activeList = savedLists.length - 1;
-  }
-  localStorage.setItem('savedGroceryLists', JSON.stringify(savedLists));
-  loadSavedLists();
-  setSyncStatus('ok','✅ List saved! — '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}));
-}
-
-async function loadMasterList(){
-  try{
-    // Load from Google Sheet master list
-    var url = 'https://docs.google.com/spreadsheets/d/'+SHEET_ID+'/gviz/tq?tqx=out:csv&sheet=Grocery';
-    var res = await fetch(url);
-    if(!res.ok) throw new Error('No Grocery sheet');
-    var rows = parseCSV(await res.text());
-    groceryItems = rows
-      .filter(function(r){ return r.name && r.name !== 'name'; })
-      .map(function(r){ return {name:r.name, store:r.store||'tj', qty:0, checked:false}; });
-    if(!groceryItems.length) throw new Error('Empty');
-    setSyncStatus('ok','✅ '+groceryItems.length+' items loaded — set quantities and save');
-  }catch(e){
-    // Fall back to hardcoded master list
-    groceryItems = [
-      {name:'Milk',store:'tj',qty:0,checked:false},{name:'Eggs',store:'co',qty:0,checked:false},
-      {name:'Bread',store:'tj',qty:0,checked:false},{name:'Butter',store:'co',qty:0,checked:false},
-      {name:'Chicken',store:'co',qty:0,checked:false},{name:'Pasta',store:'tj',qty:0,checked:false},
-      {name:'Marinara sauce',store:'tj',qty:0,checked:false},{name:'Rice',store:'co',qty:0,checked:false},
-      {name:'Olive oil',store:'co',qty:0,checked:false},{name:'Cheese',store:'tj',qty:0,checked:false},
-      {name:'Yogurt',store:'tj',qty:0,checked:false},{name:'OJ',store:'tj',qty:0,checked:false},
-      {name:'Apple juice boxes',store:'co',qty:0,checked:false},{name:'Carrots',store:'tj',qty:0,checked:false},
-      {name:'Broccoli',store:'tj',qty:0,checked:false},{name:'Bananas',store:'tj',qty:0,checked:false},
-      {name:'Apples',store:'tj',qty:0,checked:false},{name:'Cereal',store:'co',qty:0,checked:false},
-      {name:'Granola bars',store:'co',qty:0,checked:false},{name:'Peanut butter',store:'co',qty:0,checked:false},
-      {name:'Mac & cheese',store:'tj',qty:0,checked:false},{name:'Frozen pizza',store:'co',qty:0,checked:false},
-      {name:'Paper towels',store:'co',qty:0,checked:false},{name:'Dish soap',store:'co',qty:0,checked:false},
-    ];
-    setSyncStatus('ok','✅ '+groceryItems.length+' items — set quantities and save');
-  }
-  renderGroceryList();
-}
-
-function renderGroceryList(){
-  var list = document.getElementById('groceryList');
-  var filtered = gFilter==='all' ? groceryItems : groceryItems.filter(function(i){ return i.store===gFilter; });
-  // Sort: qty>0 first, then checked last
-  filtered.sort(function(a,b){
-    if(a.checked !== b.checked) return a.checked ? 1 : -1;
-    if((a.qty>0) !== (b.qty>0)) return a.qty>0 ? -1 : 1;
-    return 0;
-  });
-  if(!filtered.length){ list.innerHTML='<div class="empty-state">No items</div>'; return; }
-  list.innerHTML = '';
+  // Normal mode
+  document.getElementById('shoppingModeBar').style.display='none';
+  list.innerHTML='';
   filtered.forEach(function(item){
     var ri = groceryItems.indexOf(item);
-    var div = document.createElement('div');
-    div.className = 'grocery-item' + (item.checked?' checked':'');
-    var checkSvg = item.checked ? '<svg width="14" height="11" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>' : '';
-    var storeLabel = item.store==='tj' ? "Trader Joe's" : 'Costco';
-    var storeClass = item.store==='tj' ? 'g-store-tj' : 'g-store-co';
-    div.innerHTML =
-      '<div class="g-checkbox" onclick="toggleItem('+ri+')" style="background:'+(item.checked?'var(--teal)':'transparent')+'">'+checkSvg+'</div>'
-      +'<div class="g-info"><div class="g-name">'+item.name+(item.qty===0?'<span style="color:var(--muted);font-size:0.7rem;margin-left:4px">(not needed)</span>':'')+'</div>'+(item.note?'<div style="font-size:0.68rem;color:#8B5CF6;font-style:italic;margin-top:2px">📝 '+item.note+'</div>':'')+'<span class="g-store-badge '+storeClass+'">'+storeLabel+'</span></div>'
-      +'<div class="g-qty-ctrl">'
-        +'<button class="qty-btn qty-minus" onclick="changeQty('+ri+',-1)">−</button>'
-        +'<span class="qty-val" style="color:'+(item.qty===0?'var(--muted)':'var(--ink)')+'">'+item.qty+'</span>'
-        +'<button class="qty-btn qty-plus" onclick="changeQty('+ri+',1)">+</button>'
+    var isActive = item.qty>0;
+    var notes = item.notes||[];
+    var div=document.createElement('div');
+    div.className='grocery-item'+(isActive?' active':'');
+    var isTJ=item.store==='tj';
+    div.innerHTML=
+      '<div style="flex:1">'
+        +'<div class="g-name" style="color:'+(isActive?'var(--ink)':'var(--muted)')+'">'+item.name+'</div>'
+        +(notes.length?'<div style="font-size:0.7rem;color:var(--purple);font-style:italic;margin-top:2px">📝 '+notes[0]+(notes.length>1?' +'+(notes.length-1)+' more':'')+'</div>':'')
+      +'</div>'
+      +'<div style="display:flex;align-items:center;gap:5px">'
+        +'<button onclick="chQty('+ri+',-1)" class="qty-btn qty-minus">−</button>'
+        +'<span class="g-qty" style="color:'+(isActive?'var(--teal)':'var(--muted)')+'">'+item.qty+'</span>'
+        +'<button onclick="chQty('+ri+',1)" class="qty-btn qty-plus">+</button>'
+      +'</div>'
+      +'<div style="display:flex;gap:3px">'
+        +'<button onclick="toggleStore('+ri+')" style="border:1.5px solid '+(isTJ?'var(--tj)':'var(--co)')+';border-radius:8px;background:'+(isTJ?'#FFF0F0':'#EEF4FF')+';cursor:pointer;padding:4px 7px;font-size:0.75rem;font-weight:900;color:'+(isTJ?'var(--tj)':'var(--co)')+'">'+( isTJ?'🛍':'🏪')+'</button>'
+        +'<button onclick="removeItem('+ri+')" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:0.85rem;padding:4px;opacity:0.4">✕</button>'
       +'</div>';
     list.appendChild(div);
   });
 }
 
-function toggleItem(i){ groceryItems[i].checked=!groceryItems[i].checked; renderGroceryList(); }
-function changeQty(i,d){ groceryItems[i].qty=Math.max(0,groceryItems[i].qty+d); renderGroceryList(); }
-function setMobileStore(store,btn){
-  mNewStore=store;
-  document.getElementById('mpick-tj').className='store-pick-btn'+(store==='tj'?' tj-active':'');
-  document.getElementById('mpick-co').className='store-pick-btn'+(store==='co'?' co-active':'');
+function makeShoppingItem(item){
+  var ri = groceryItems.indexOf(item);
+  var div=document.createElement('div');
+  div.className='grocery-item'+(item.checked?' shopping-checked':'');
+  div.style.cursor='pointer';
+  div.onclick=function(){ groceryItems[ri].checked=!groceryItems[ri].checked; saveCurrentList(); renderGrocery(); };
+  div.innerHTML=
+    '<div style="width:28px;height:28px;border-radius:50%;border:2px solid '+(item.checked?'var(--teal)':'var(--border)')+';background:'+(item.checked?'var(--teal)':'transparent')+';display:flex;align-items:center;justify-content:center;flex-shrink:0">'
+      +(item.checked?'<svg width="12" height="10" viewBox="0 0 10 8"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>':'')
+    +'</div>'
+    +'<div style="flex:1"><div class="g-name">'+item.name+'</div>'
+      +(item.notes&&item.notes[0]?'<div style="font-size:0.7rem;color:var(--purple);font-style:italic">📝 '+item.notes[0]+'</div>':'')
+    +'</div>'
+    +'<span class="g-qty">×'+item.qty+'</span>'
+    +'<span class="g-store-badge '+(item.store==='tj'?'g-store-tj':'g-store-co')+'">'+( item.store==='tj'?"TJ's":'Costco')+'</span>';
+  return div;
 }
-function addMobileGroceryItem(){
+
+function chQty(i,d){
+  groceryItems[i].qty=Math.max(0,groceryItems[i].qty+d);
+  renderGrocery();
+  saveCurrentList();
+}
+function toggleStore(i){
+  groceryItems[i].store=groceryItems[i].store==='tj'?'co':'tj';
+  renderGrocery(); saveCurrentList();
+}
+function removeItem(i){ groceryItems.splice(i,1); renderGrocery(); saveCurrentList(); }
+
+function addGroceryItem(){
   var name=document.getElementById('newItemName').value.trim(); if(!name) return;
-  groceryItems.unshift({name:name,store:mNewStore,qty:1,checked:false});
-  renderGroceryList();
+  var qty=parseInt(document.getElementById('newItemQty').value)||1;
+  groceryItems.unshift({name:name,store:newStore,qty:qty,notes:[],checked:false});
+  renderGrocery(); saveCurrentList();
   document.getElementById('newItemName').value='';
-}
-function clearChecked(){
-  groceryItems.forEach(function(i){ if(i.checked){ i.checked=false; i.qty=0; } });
-  renderGroceryList();
-  setSyncStatus('ok','✅ Cleared — ready for next shop');
-}
-function filterGrocery(store,btn){
-  gFilter=store;
-  document.querySelectorAll('.store-chip').forEach(function(b){ b.className='store-chip'; });
-  btn.className='store-chip active-'+store;
-  renderGroceryList();
-}
-function setSyncStatus(type,msg){
-  var el=document.getElementById('grocerySyncStatus');
-  el.className='sync-status sync-'+type;
-  el.textContent=msg;
+  document.getElementById('newItemQty').value='1';
 }
 
-function parseCSV(csv){
-  var lines=csv.trim().split('\n'); if(lines.length<2) return [];
-  var headers=lines[0].replace(/"/g,'').split(',');
-  return lines.slice(1).map(function(line){
-    var vals=[],cur='',inQ=false;
-    for(var i=0;i<line.length;i++){
-      if(line[i]==='"'){inQ=!inQ;}
-      else if(line[i]===','&&!inQ){vals.push(cur);cur='';}
-      else{cur+=line[i];}
-    }
-    vals.push(cur);
-    var obj={};
-    headers.forEach(function(h,i){ obj[h.trim()]=(vals[i]||'').trim(); });
-    return obj;
-  });
+function toggleShoppingMode(){
+  shoppingMode=!shoppingMode;
+  var btn=document.getElementById('shoppingModeBtn');
+  btn.style.background=shoppingMode?'var(--coral)':'';
+  btn.style.color=shoppingMode?'white':'';
+  btn.textContent=shoppingMode?'✕ Exit Shopping':'🛒 Shopping Mode';
+  renderGrocery();
 }
 
-// ── GOOGLE DRIVE ──────────────────────────────────────────────
-function connectDrive(){
-  var client = google.accounts.oauth2.initTokenClient({
-    client_id: PHOTOS_CLIENT_ID,
-    scope: 'https://www.googleapis.com/auth/drive.file',
-    callback: function(response){
-      if(response.error){
-        showDriveStatus('err','❌ '+response.error);
-        return;
-      }
-      driveToken = response.access_token;
-      document.getElementById('driveConnectStatus').textContent='● Drive Connected';
-      document.getElementById('driveConnectStatus').style.color='var(--teal)';
-      showDriveStatus('ok','✅ Connected to Google Drive!');
-      loadDriveMedia();
-    }
-  });
-  client.requestAccessToken();
+function showSavedLists(){
+  if(!savedLists.length){ alert('No saved lists yet.'); return; }
+  var names=savedLists.map(function(l,i){ return (l.starred?'⭐ ':'')+(i+1)+'. '+l.name; });
+  var choice=prompt('Saved lists:\n'+names.join('\n')+'\n\nEnter number to load:');
+  var idx=parseInt(choice)-1;
+  if(isNaN(idx)||!savedLists[idx]) return;
+  activeListIdx=idx;
+  groceryItems=JSON.parse(JSON.stringify(savedLists[idx].items));
+  renderGrocery();
 }
 
-function showDriveStatus(type,msg){
-  var el=document.getElementById('driveStatus');
-  el.style.display='block';
-  el.className='drive-status ds-'+type;
-  el.textContent=msg;
+function saveCurrentList(){
+  var name='List — '+new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  var listObj={name:name,savedAt:Date.now(),items:JSON.parse(JSON.stringify(groceryItems))};
+  if(activeListIdx!==null){ savedLists[activeListIdx]=listObj; }
+  else{ savedLists.push(listObj); activeListIdx=savedLists.length-1; }
+  localStorage.setItem('savedGroceryLists',JSON.stringify(savedLists));
 }
 
-// ── MEDIA UPLOAD ──────────────────────────────────────────────
-var pendingFiles = [];
+// ── TALLY ─────────────────────────────────────────────────────
+var yellData={papa:0,mama:0,emma:0};
+try{ yellData=JSON.parse(localStorage.getItem('yellData')||'{"papa":0,"mama":0,"emma":0}'); }catch(e){}
 
-function handleMediaSelect(input){
-  pendingFiles = Array.from(input.files);
-  var grid = document.getElementById('pendingMediaGrid');
-  grid.innerHTML = '';
-  pendingFiles.forEach(function(file, idx){
-    var wrap = document.createElement('div');
-    wrap.className = 'media-thumb-wrap';
-    if(file.type.startsWith('image/')){
-      var img = document.createElement('img');
-      img.className = 'media-thumb';
-      img.src = URL.createObjectURL(file);
-      wrap.appendChild(img);
-    } else {
-      var vid = document.createElement('video');
-      vid.className = 'media-thumb';
-      vid.src = URL.createObjectURL(file);
-      vid.muted = true;
-      wrap.appendChild(vid);
-    }
-    var del = document.createElement('button');
-    del.className = 'media-del';
-    del.textContent = '✕';
-    del.onclick = function(){ pendingFiles.splice(idx,1); handleMediaSelect({files:pendingFiles}); };
-    wrap.appendChild(del);
-    grid.appendChild(wrap);
-  });
-  document.getElementById('uploadBtn').style.display = pendingFiles.length ? 'flex' : 'none';
-}
-
-async function uploadToDrive(){
-  if(!driveToken){ alert('Connect Google Drive first!'); return; }
-  if(!pendingFiles.length) return;
-  var btn = document.getElementById('uploadBtn');
-  btn.disabled = true;
-  document.getElementById('uploadProgress').style.display = 'block';
-
-  for(var i=0; i<pendingFiles.length; i++){
-    var file = pendingFiles[i];
-    var pct = Math.round((i/pendingFiles.length)*100);
-    document.getElementById('progressBar').style.width = pct+'%';
-    document.getElementById('uploadProgressText').textContent = 'Uploading '+(i+1)+' of '+pendingFiles.length+'…';
-
-    try{
-      // Upload to Google Drive folder
-      var metadata = {
-        name: file.name || ('family_'+Date.now()),
-        parents: [DRIVE_FOLDER_ID]
-      };
-      var form = new FormData();
-      form.append('metadata', new Blob([JSON.stringify(metadata)], {type:'application/json'}));
-      form.append('file', file);
-
-      var res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
-        method:'POST',
-        headers:{ Authorization:'Bearer '+driveToken },
-        body: form
-      });
-      var data = await res.json();
-      if(data.error) throw new Error(data.error.message);
-
-      // Make file publicly readable
-      await fetch('https://www.googleapis.com/drive/v3/files/'+data.id+'/permissions', {
-        method:'POST',
-        headers:{ Authorization:'Bearer '+driveToken, 'Content-Type':'application/json' },
-        body: JSON.stringify({role:'reader', type:'anyone'})
-      });
-
-    }catch(e){
-      console.error('Upload error:', e);
-    }
-  }
-
-  document.getElementById('progressBar').style.width = '100%';
-  document.getElementById('uploadProgressText').textContent = '✅ All uploaded!';
-  pendingFiles = [];
-  document.getElementById('pendingMediaGrid').innerHTML = '';
-  btn.style.display = 'none';
-  btn.disabled = false;
-  setTimeout(function(){ document.getElementById('uploadProgress').style.display='none'; },2000);
-  loadDriveMedia();
-}
-
-async function loadDriveMedia(){
-  if(!driveToken) return;
-  var statusEl = document.getElementById('driveMediaStatus');
-  statusEl.textContent = '⏳ Loading…';
-  try{
-    var res = await fetch(
-      "https://www.googleapis.com/drive/v3/files?q='"+DRIVE_FOLDER_ID+"'+in+parents+and+trashed=false&fields=files(id,name,mimeType,thumbnailLink)&pageSize=50",
-      { headers:{ Authorization:'Bearer '+driveToken } }
-    );
-    var data = await res.json();
-    var files = data.files || [];
-    statusEl.textContent = files.length+' file'+(files.length!==1?'s':'')+' in Drive folder';
-    var grid = document.getElementById('driveMediaGrid');
-    grid.innerHTML = '';
-    files.forEach(function(file){
-      var wrap = document.createElement('div');
-      wrap.className = 'media-thumb-wrap';
-      if(file.mimeType && file.mimeType.startsWith('image/')){
-        var img = document.createElement('img');
-        img.className = 'media-thumb';
-        img.src = file.thumbnailLink || 'https://drive.google.com/thumbnail?id='+file.id;
-        wrap.appendChild(img);
-      } else {
-        var div = document.createElement('div');
-        div.className = 'media-thumb';
-        div.style.cssText='background:var(--ink);display:flex;align-items:center;justify-content:center;font-size:1.5rem;';
-        div.textContent='🎬';
-        wrap.appendChild(div);
-      }
-      grid.appendChild(wrap);
-    });
-    if(!files.length) grid.innerHTML='<div class="empty-state">No media yet — upload some!</div>';
-  }catch(e){
-    statusEl.textContent='⚠️ Could not load Drive files';
-  }
-}
-
-// ── INIT ──────────────────────────────────────────────────────
-loadSavedLists();
-cleanOldLists();
-
-// ── MOBILE TALLY + WINS ──────────────────────────────────────
-var mYellData={papa:0,mama:0,emma:0};
-var mWinsData={starCats:[],sparks:0,behavior:[]};
-var mBehType='pos', mBehPts=1;
-var M_PIN = localStorage.getItem('userPin')||'1234';
-var mPinVerified = false;
-
-function loadMobileSharedData(){
-  try{ mYellData=JSON.parse(localStorage.getItem('yellData')||'{"papa":0,"mama":0,"emma":0}'); }catch(e){}
-  try{
-    var sw=JSON.parse(localStorage.getItem('winsData')||'null');
-    if(sw) mWinsData=sw;
-  }catch(e){}
-}
-
-function renderMTally(){
-  loadMobileSharedData();
-  var rows=document.getElementById('m-yell-rows'); if(!rows) return;
+function renderTally(){
+  var rows=document.getElementById('yellRows'); if(!rows) return;
   var people=[['👨 Papa','papa'],['👩 Mama','mama'],['👧 Emma','emma']];
+  var minVal=Math.min(yellData.papa,yellData.mama,yellData.emma);
   rows.innerHTML='';
-  var minVal=Math.min(mYellData.papa,mYellData.mama,mYellData.emma);
   people.forEach(function(p){
-    var name=p[0],key=p[1],val=mYellData[key];
-    var row=document.createElement('div');
-    row.style.cssText='display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)';
-    row.innerHTML='<span style="font-size:0.9rem;font-weight:800;flex:1">'+name+(val===minVal?' 🏆':'')+'</span>'
-      +'<span style="font-family:Fredoka One,cursive;font-size:1.4rem;color:var(--coral)">'+val+'</span>'
-      +'<button onclick="mYell(''+key+'',-1)" style="width:28px;height:28px;border-radius:50%;border:1.5px solid var(--border);background:white;cursor:pointer;font-weight:900">−</button>'
-      +'<button onclick="mYell(''+key+'',1)" style="width:28px;height:28px;border-radius:50%;border:none;background:var(--coral-l);color:var(--coral);cursor:pointer;font-weight:900">+</button>';
+    var name=p[0],key=p[1],val=yellData[key];
+    var row=document.createElement('div'); row.className='tally-row';
+    row.innerHTML='<span class="tally-name">'+name+(val===minVal?' 🏆':'')+'</span>'
+      +'<span class="tally-count">'+val+'</span>'
+      +'<button onclick="adjYell(\''+key+'\',-1)" class="adj-btn" style="background:var(--bg);border:1.5px solid var(--border)">−</button>'
+      +'<button onclick="adjYell(\''+key+'\',1)" class="adj-btn" style="background:var(--coral-l);color:var(--coral);border:none">+</button>';
     rows.appendChild(row);
   });
+
   // Tally summary
-  var sum=document.getElementById('m-tally-summary'); if(!sum) return;
-  var stars=mWinsData.starCats?mWinsData.starCats.reduce(function(s,c){return s+c.count*c.pts;},0):0;
-  var sparks=mWinsData.sparks||0;
-  var beh=(mWinsData.behavior||[]).reduce(function(s,b){return s+b.pts;},0);
-  sum.innerHTML='<div style="display:flex;gap:10px">'
-    +'<div style="flex:1;background:var(--amber-l);border-radius:10px;padding:10px;text-align:center"><div style="font-family:Fredoka One,cursive;font-size:1.5rem;color:var(--amber)">'+stars+'</div><div style="font-size:0.65rem;font-weight:800;color:var(--amber)">STARS</div></div>'
-    +'<div style="flex:1;background:var(--gold-l);border-radius:10px;padding:10px;text-align:center"><div style="font-family:Fredoka One,cursive;font-size:1.5rem;color:var(--spark)">'+sparks+'</div><div style="font-size:0.65rem;font-weight:800;color:var(--spark)">SPARKS</div></div>'
-    +'<div style="flex:1;background:var(--purple-l);border-radius:10px;padding:10px;text-align:center"><div style="font-family:Fredoka One,cursive;font-size:1.5rem;color:var(--purple)">'+(stars+sparks+beh)+'</div><div style="font-size:0.65rem;font-weight:800;color:var(--purple)">NET</div></div>'
+  var winsData={starCats:[],sparks:0,behavior:[]};
+  try{ var sw=JSON.parse(localStorage.getItem('winsData')||'null'); if(sw) winsData=sw; }catch(e){}
+  var stars=(winsData.starCats||[]).reduce(function(s,c){return s+c.count*(c.pts||1);},0);
+  var sparks=winsData.sparks||0;
+  var beh=(winsData.behavior||[]).reduce(function(s,b){return s+b.pts;},0);
+  var sum=document.getElementById('tallySummary'); if(!sum) return;
+  sum.innerHTML='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">'
+    +'<div style="background:var(--amber-l);border-radius:12px;padding:12px;text-align:center"><div style="font-family:Fredoka One,cursive;font-size:1.6rem;color:var(--amber)">'+stars+'</div><div style="font-size:0.65rem;font-weight:800;color:var(--amber)">STARS</div></div>'
+    +'<div style="background:var(--gold-l);border-radius:12px;padding:12px;text-align:center"><div style="font-family:Fredoka One,cursive;font-size:1.6rem;color:var(--spark)">'+sparks+'</div><div style="font-size:0.65rem;font-weight:800;color:var(--spark)">SPARKS</div></div>'
+    +'<div style="background:var(--purple-l);border-radius:12px;padding:12px;text-align:center"><div style="font-family:Fredoka One,cursive;font-size:1.6rem;color:var(--purple)">'+(stars+sparks+beh)+'</div><div style="font-size:0.65rem;font-weight:800;color:var(--purple)">NET</div></div>'
     +'</div>';
 }
 
-function mYell(who,d){
-  mYellData[who]=Math.max(0,mYellData[who]+d);
-  localStorage.setItem('yellData',JSON.stringify(mYellData));
-  renderMTally();
+function adjYell(who,d){
+  yellData[who]=Math.max(0,yellData[who]+d);
+  localStorage.setItem('yellData',JSON.stringify(yellData));
+  renderTally();
 }
-function resetMYelling(){
-  mYellData={papa:0,mama:0,emma:0};
-  localStorage.setItem('yellData',JSON.stringify(mYellData));
-  renderMTally();
+function resetYelling(){
+  if(!confirm('Reset all yelling counts?')) return;
+  yellData={papa:0,mama:0,emma:0};
+  localStorage.setItem('yellData',JSON.stringify(yellData));
+  renderTally();
 }
 
-function renderMWins(){
-  loadMobileSharedData();
-  // Stars
-  var cats=document.getElementById('m-star-cats'); if(!cats) return;
-  cats.innerHTML='';
-  var total=0;
-  (mWinsData.starCats||[]).forEach(function(cat,idx){
+// ── EMMA WINS ─────────────────────────────────────────────────
+var winsData={starCats:[],sparks:0,behavior:[],week:''};
+var behType='pos', behPts=1;
+
+function loadWins(){
+  try{ var sw=JSON.parse(localStorage.getItem('winsData')||'null'); if(sw) winsData=sw; }catch(e){}
+}
+
+function renderEmma(){
+  loadWins();
+  var rows=document.getElementById('starRows'); if(!rows) return;
+  rows.innerHTML=''; var total=0;
+  (winsData.starCats||[]).forEach(function(cat,idx){
     total+=cat.count*(cat.pts||1);
-    var row=document.createElement('div');
-    row.style.cssText='display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)';
-    row.innerHTML='<span style="font-size:1rem">'+(cat.emoji||'⭐')+'</span>'
-      +'<span style="font-size:0.85rem;font-weight:700;flex:1">'+cat.label+'</span>'
-      +'<span style="font-size:0.65rem;color:var(--muted);font-weight:700">+'+cat.pts+'</span>'
-      +'<span style="font-family:Fredoka One,cursive;font-size:1rem;color:var(--amber)">'+cat.count+'</span>'
-      +'<button onclick="mAdjStar('+idx+',-1)" style="width:26px;height:26px;border-radius:50%;border:none;background:var(--red-l);color:var(--red);cursor:pointer;font-weight:900;font-size:0.9rem">−</button>'
-      +'<button onclick="mAdjStar('+idx+',1)" style="width:26px;height:26px;border-radius:50%;border:none;background:var(--amber-l);color:var(--amber);cursor:pointer;font-weight:900;font-size:0.9rem">+</button>';
-    cats.appendChild(row);
+    var row=document.createElement('div'); row.className='star-row';
+    row.innerHTML='<span class="star-emoji">'+(cat.emoji||'⭐')+'</span>'
+      +'<div style="flex:1"><div class="star-label">'+cat.label+'</div><div class="star-pts">+'+cat.pts+' pts each</div></div>'
+      +'<span class="star-count">'+cat.count+'</span>'
+      +'<button onclick="adjStar('+idx+',-1)" class="adj-btn" style="background:var(--red-l);color:var(--red);border:none">−</button>'
+      +'<button onclick="adjStar('+idx+',1)" class="adj-btn" style="background:var(--amber-l);color:var(--amber);border:none">+</button>';
+    rows.appendChild(row);
   });
-  var ts=document.getElementById('m-total-stars'); if(ts) ts.textContent=total;
-  var sp=document.getElementById('m-sparks'); if(sp) sp.textContent=mWinsData.sparks||0;
+  var ts=document.getElementById('totalStarsM'); if(ts) ts.textContent=total;
+  var sp=document.getElementById('sparkCountM'); if(sp) sp.textContent=winsData.sparks||0;
 }
 
-function mAdjStar(idx,d){
-  if(!mPinVerified){ promptMPin(function(){ mAdjStar(idx,d); }); return; }
-  if(!mWinsData.starCats||!mWinsData.starCats[idx]) return;
-  mWinsData.starCats[idx].count=Math.max(0,mWinsData.starCats[idx].count+d);
-  saveAndSyncWins();
-  renderMWins();
+function adjStar(idx,d){
+  if(!winsData.starCats||!winsData.starCats[idx]) return;
+  winsData.starCats[idx].count=Math.max(0,winsData.starCats[idx].count+d);
+  saveWins(); renderEmma();
+}
+function adjSpark(d){
+  winsData.sparks=Math.max(0,(winsData.sparks||0)+d);
+  saveWins(); renderEmma();
+}
+function saveWins(){
+  localStorage.setItem('winsData',JSON.stringify(winsData));
+}
+function setBehType(type,btn){
+  behType=type;
+  document.getElementById('beh-pos').className='btn '+(type==='pos'?'btn-success':'btn-ghost')+' btn-sm';
+  document.getElementById('beh-neg').className='btn '+(type==='neg'?'btn-red':'btn-ghost')+' btn-sm';
+}
+function adjBehPts(d){ behPts=Math.max(1,Math.min(5,behPts+d)); document.getElementById('behPtsM').textContent=behPts; }
+function saveBehavior(){
+  loadWins();
+  var text=document.getElementById('behText').value.trim(); if(!text) return;
+  var pts=behType==='pos'?behPts:-behPts;
+  if(!winsData.behavior) winsData.behavior=[];
+  winsData.behavior.unshift({text:text,pts:pts,type:behType,time:new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'})});
+  document.getElementById('behText').value='';
+  saveWins();
+  alert('✅ Saved!');
 }
 
-function mAdjSpark(d){
-  if(!mPinVerified){ promptMPin(function(){ mAdjSpark(d); }); return; }
-  mWinsData.sparks=Math.max(0,(mWinsData.sparks||0)+d);
-  saveAndSyncWins();
-  renderMWins();
+// ── MEALS ─────────────────────────────────────────────────────
+var DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+var MEALS=['Breakfast','Lunch','Dinner'];
+var MEAL_ICONS={Breakfast:'🌅',Lunch:'☀️',Dinner:'🌙'};
+
+function getMealItems(day,mt){
+  try{ return JSON.parse(localStorage.getItem('meal-arr-'+day+'-'+mt)||'[]'); }catch(e){ return []; }
 }
 
-function saveAndSyncWins(){
-  mWinsData.week=getWeekKeyM();
-  localStorage.setItem('winsData',JSON.stringify(mWinsData));
+function renderMeals(){
+  var view=document.getElementById('mealsView'); if(!view) return;
+  view.innerHTML='';
+  var today=new Date().getDay();
+  DAYS.forEach(function(day,i){
+    var card=document.createElement('div'); card.className='meal-day-card';
+    var isToday=i===today;
+    card.innerHTML='<div class="meal-day-hdr'+(isToday?' today':'')+'">'+day+(isToday?' — Today':'')+'</div>';
+    MEALS.forEach(function(mt){
+      var items=getMealItems(day,mt);
+      var row=document.createElement('div'); row.className='meal-row';
+      row.innerHTML='<span class="meal-type">'+MEAL_ICONS[mt]+' '+mt+'</span>'
+        +'<span class="meal-items">'+(items.length?items.map(function(m){return (m.emoji||'')+' '+m.name;}).join(', '):'<span style="color:var(--muted);font-style:italic;font-size:0.82rem">Empty</span>')+'</span>'
+        +'<button class="meal-add-btn" onclick="quickAddMeal(\''+day+'\',\''+mt+'\')">+ Add</button>';
+      card.appendChild(row);
+    });
+    view.appendChild(card);
+  });
 }
 
-function getWeekKeyM(){
-  var n=new Date(),d=n.getDay(),m=new Date(n);
-  m.setDate(n.getDate()-(d===0?6:d-1));
-  return m.toISOString().substring(0,10);
+function quickAddMeal(day,mt){
+  var name=prompt(MEAL_ICONS[mt]+' '+mt+' for '+day+' — add item:');
+  if(!name||!name.trim()) return;
+  var items=getMealItems(day,mt);
+  items.push({name:name.trim(),emoji:''});
+  localStorage.setItem('meal-arr-'+day+'-'+mt,JSON.stringify(items));
+  renderMeals();
 }
 
-var mBehPendingPts=1;
-function setMBehType(type,btn){
-  mBehType=type;
-  document.getElementById('m-beh-pos').className='btn '+(type==='pos'?'btn-success':'btn-ghost')+' btn-sm';
-  document.getElementById('m-beh-neg').className='btn '+(type==='neg'?'btn-red':'btn-ghost')+' btn-sm';
-}
-function adjMBehPts(d){ mBehPendingPts=Math.max(1,Math.min(5,mBehPendingPts+d)); document.getElementById('m-beh-pts').textContent=mBehPendingPts; }
-function saveMBehavior(){
-  if(!mPinVerified){ promptMPin(saveMBehavior); return; }
-  var text=document.getElementById('m-beh-text').value.trim(); if(!text) return;
-  var pts=mBehType==='pos'?mBehPendingPts:-mBehPendingPts;
-  if(!mWinsData.behavior) mWinsData.behavior=[];
-  mWinsData.behavior.unshift({text:text,pts:pts,type:mBehType,time:new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'})});
-  document.getElementById('m-beh-text').value='';
-  saveAndSyncWins();
-  renderMWins();
-  alert('✅ Behavior logged!');
+// ── PHOTOS ────────────────────────────────────────────────────
+function initDriveClient(){
+  if(typeof google==='undefined'||!google.accounts) return;
+  driveClient=google.accounts.oauth2.initTokenClient({
+    client_id:'801480570402-brbo6se67g4g8kbckijlbbmffkb13u2s.apps.googleusercontent.com',
+    scope:'https://www.googleapis.com/auth/drive.file',
+    callback:function(resp){
+      if(resp.error){ document.getElementById('driveStatus').textContent='❌ '+resp.error; return; }
+      driveToken=resp.access_token;
+      document.getElementById('driveBtn').textContent='✅ Drive Connected';
+      document.getElementById('driveStatus').textContent='Ready to upload!';
+    }
+  });
 }
 
-// Simple PIN prompt for mobile
-function promptMPin(callback){
-  var pin=prompt('Enter parent PIN:');
-  if(pin===M_PIN){ mPinVerified=true; callback(); }
-  else alert('Incorrect PIN');
+function connectDrive(){
+  if(typeof google==='undefined'||!google.accounts){
+    document.getElementById('driveStatus').textContent='⚠️ Loading Google… try again in 2s';
+    setTimeout(initDriveClient,2000); return;
+  }
+  if(!driveClient) initDriveClient();
+  if(driveClient) driveClient.requestAccessToken();
 }
 
-// Override switchTab to render tally/wins on tab switch
-var _origSwitchTab=switchTab;
-switchTab=function(name,btn){
-  _origSwitchTab(name,btn);
-  if(name==='tally') renderMTally();
-  if(name==='wins') renderMWins();
-};
+async function uploadPhotos(input){
+  var files=Array.from(input.files);
+  if(!files.length) return;
+  if(!driveToken){ alert('Connect Google Drive first!'); return; }
 
-// Init
-loadMobileSharedData();
+  var prog=document.getElementById('uploadProgress');
+  var grid=document.getElementById('uploadedPhotos');
 
+  for(var i=0;i<files.length;i++){
+    var file=files[i];
+    prog.innerHTML='<div style="font-size:0.8rem;font-weight:800;color:var(--muted)">⏳ Uploading '+(i+1)+'/'+files.length+'…</div>';
+
+    try{
+      // Compress image first
+      var compressed=await compressImage(file,1200,1200,0.75);
+
+      // Upload to Drive
+      var meta=JSON.stringify({name:file.name,parents:[DRIVE_FOLDER_ID]});
+      var form=new FormData();
+      form.append('metadata',new Blob([meta],{type:'application/json'}));
+      form.append('file',compressed);
+
+      var res=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',{
+        method:'POST',
+        headers:{Authorization:'Bearer '+driveToken},
+        body:form
+      });
+      var data=await res.json();
+      if(data.id){
+        // Show thumbnail
+        var img=document.createElement('img');
+        img.src=URL.createObjectURL(compressed);
+        img.className='photo-thumb';
+        grid.insertBefore(img,grid.firstChild);
+
+        // Trigger Apps Script to sync photo to Sheet
+        if(WEB_APP_URL) fetch(WEB_APP_URL+'?action=syncPhotos',{mode:'no-cors'}).catch(function(){});
+      }
+    }catch(e){ console.log('Upload failed:',e); }
+  }
+  prog.innerHTML='<div style="font-size:0.8rem;font-weight:800;color:var(--teal)">✅ '+files.length+' photo'+(files.length!==1?'s':'')+' uploaded! Will appear on iPad screensaver within 5 minutes.</div>';
+  input.value='';
+}
+
+function compressImage(file,maxW,maxH,quality){
+  return new Promise(function(resolve){
+    var reader=new FileReader();
+    reader.onload=function(e){
+      var img=new Image();
+      img.onload=function(){
+        var w=img.width,h=img.height;
+        if(w>maxW){ h=Math.round(h*maxW/w); w=maxW; }
+        if(h>maxH){ w=Math.round(w*maxH/h); h=maxH; }
+        var canvas=document.createElement('canvas');
+        canvas.width=w; canvas.height=h;
+        canvas.getContext('2d').drawImage(img,0,0,w,h);
+        canvas.toBlob(function(blob){ resolve(blob); },'image/jpeg',quality);
+      };
+      img.src=e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// ── INIT ─────────────────────────────────────────────────────
+initGrocery();
 </script>
 </body>
 </html>

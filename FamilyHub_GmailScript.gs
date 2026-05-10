@@ -45,6 +45,10 @@ function doGet(e) {
       var allData = getAllAppDataFromSheet();
       return ContentService.createTextOutput(JSON.stringify({ status: 'ok', data: allData })).setMimeType(ContentService.MimeType.JSON);
     }
+    if (action === 'syncPhotos') {
+      var added = syncPhotosToSheet();
+      return ContentService.createTextOutput(JSON.stringify({ status: 'ok', added: added })).setMimeType(ContentService.MimeType.JSON);
+    }
     checkEmmaEmails();
     fetchCalendarEvents();
     return ContentService.createTextOutput(JSON.stringify({ status: 'ok', message: 'Email check and calendar sync complete' })).setMimeType(ContentService.MimeType.JSON);
@@ -399,5 +403,56 @@ function getAllAppDataFromSheet() {
     if (row[0]) result[row[0]] = row[1];
   });
   return result;
+}
+
+// ── PHOTO SYNC (Drive → Sheet) ───────────────────────────────
+function syncPhotosToSheet() {
+  var ss = SpreadsheetApp.openById(CONFIG.SHEET_ID);
+  var sheet = ss.getSheetByName('Photos');
+  if (!sheet) {
+    sheet = ss.insertSheet('Photos');
+    sheet.appendRow(['fileId', 'fileName', 'uploadedAt', 'uploader', 'mimeType']);
+  }
+
+  var folder = DriveApp.getFolderById('1VrGefC8FXO5-E7P8ree44DgQz2RGslom');
+  var files = folder.getFiles();
+  var existingIds = [];
+
+  // Get existing file IDs from sheet
+  if (sheet.getLastRow() > 1) {
+    var existing = sheet.getRange(2, 1, sheet.getLastRow()-1, 1).getValues();
+    existingIds = existing.map(function(r){ return r[0]; });
+  }
+
+  var added = 0;
+  while (files.hasNext()) {
+    var file = files.next();
+    if (file.getMimeType().indexOf('image/') === -1 && file.getMimeType().indexOf('video/') === -1) continue;
+    if (existingIds.indexOf(file.getId()) === -1) {
+      sheet.appendRow([
+        file.getId(),
+        file.getName(),
+        file.getDateCreated().toISOString(),
+        'mobile',
+        file.getMimeType()
+      ]);
+      added++;
+    }
+  }
+
+  Logger.log('Photo sync: '+added+' new photos added to Sheet');
+  return added;
+}
+
+// Add to doGet
+function getPhotos() {
+  syncPhotosToSheet();
+  var ss = SpreadsheetApp.openById(CONFIG.SHEET_ID);
+  var sheet = ss.getSheetByName('Photos');
+  if (!sheet || sheet.getLastRow() < 2) return [];
+  var data = sheet.getRange(2, 1, sheet.getLastRow()-1, 5).getValues();
+  return data.map(function(row){
+    return { fileId: row[0], fileName: row[1], uploadedAt: row[2], mimeType: row[4] };
+  });
 }
 
