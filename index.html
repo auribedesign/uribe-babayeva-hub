@@ -3166,9 +3166,12 @@ openSettings=function(){
   updateNightModeStatus();
 };
 
-// Check night mode every minute
-setInterval(checkNightMode, 60000);
-checkNightMode(); // Run immediately on load
+// Only activate night mode/lock on touch devices (iPad/phone), not desktop
+var isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+if(isTouchDevice){
+  setInterval(checkNightMode, 60000);
+  checkNightMode();
+}
 
 // ── INIT ──────────────────────────────────────────────────────// ── NIGHT MODE + APP LOCK ────────────────────────────────────
 var NIGHT_START = parseFloat(localStorage.getItem('nightModeStart')||'20');
@@ -3337,9 +3340,12 @@ openSettings=function(){
   updateNightModeStatus();
 };
 
-// Check night mode every minute
-setInterval(checkNightMode, 60000);
-checkNightMode(); // Run immediately on load
+// Only activate night mode/lock on touch devices (iPad/phone), not desktop
+var isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+if(isTouchDevice){
+  setInterval(checkNightMode, 60000);
+  checkNightMode();
+}
 
 // ── INIT ──────────────────────────────────────────────────────
 buildMeals();
