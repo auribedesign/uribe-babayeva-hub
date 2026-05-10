@@ -1317,6 +1317,14 @@ function openSettings(){
   document.getElementById('settingsCalUrl').value = localStorage.getItem('calUrl')||'';
   document.getElementById('sparkThresholdInput').value = SPARK_THRESHOLD;
   updateSheetStatus(); updatePhotoCount();
+  // Night mode selects
+  var ns=localStorage.getItem('nightModeStart')||'20';
+  var ne=localStorage.getItem('nightModeEnd')||'7';
+  var lt=localStorage.getItem('lockTime')||'19.5';
+  var s1=document.getElementById('nightModeStart'); if(s1) s1.value=ns;
+  var s2=document.getElementById('nightModeEnd'); if(s2) s2.value=ne;
+  var s3=document.getElementById('lockTimeSelect'); if(s3) s3.value=lt;
+  updateNightModeStatus();
   document.getElementById('settingsPanel').classList.add('open');
 }
 function closeSettings(){ document.getElementById('settingsPanel').classList.remove('open'); }
@@ -3153,18 +3161,7 @@ function tryWakeFromNight(e){
   });
 }
 
-// Load saved night mode settings into selects when settings open
-var _origOpenSettings=openSettings;
-openSettings=function(){
-  _origOpenSettings();
-  var ns=localStorage.getItem('nightModeStart')||'20';
-  var ne=localStorage.getItem('nightModeEnd')||'7';
-  var lt=localStorage.getItem('lockTime')||'19.5';
-  var s1=document.getElementById('nightModeStart'); if(s1) s1.value=ns;
-  var s2=document.getElementById('nightModeEnd'); if(s2) s2.value=ne;
-  var s3=document.getElementById('lockTimeSelect'); if(s3) s3.value=lt;
-  updateNightModeStatus();
-};
+// Night mode settings loaded inside openSettings directly (see openSettings fn)
 
 // Only activate night mode/lock on touch devices (iPad/phone), not desktop
 var isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
@@ -3327,18 +3324,7 @@ function tryWakeFromNight(e){
   });
 }
 
-// Load saved night mode settings into selects when settings open
-var _origOpenSettings=openSettings;
-openSettings=function(){
-  _origOpenSettings();
-  var ns=localStorage.getItem('nightModeStart')||'20';
-  var ne=localStorage.getItem('nightModeEnd')||'7';
-  var lt=localStorage.getItem('lockTime')||'19.5';
-  var s1=document.getElementById('nightModeStart'); if(s1) s1.value=ns;
-  var s2=document.getElementById('nightModeEnd'); if(s2) s2.value=ne;
-  var s3=document.getElementById('lockTimeSelect'); if(s3) s3.value=lt;
-  updateNightModeStatus();
-};
+// Night mode settings loaded inside openSettings directly (see openSettings fn)
 
 // Only activate night mode/lock on touch devices (iPad/phone), not desktop
 var isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
